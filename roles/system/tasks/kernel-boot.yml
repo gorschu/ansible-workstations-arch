@@ -1,0 +1,30 @@
+---
+# Configure boot for a single kernel (called in a loop)
+# Variables: kernel_name, system_uki_enabled, system_kernel_cmdline
+
+- name: Configure boot for {{ kernel_name }}
+  become: true
+  block:
+    - name: Template mkinitcpio preset
+      ansible.builtin.template:
+        src: mkinitcpio-preset.j2
+        dest: "/etc/mkinitcpio.d/{{ kernel_name }}.preset"
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Rebuild initramfs
+
+    - name: Template loader entry
+      when: not system_uki_enabled
+      ansible.builtin.template:
+        src: loader-entry.conf.j2
+        dest: "/boot/loader/entries/arch-{{ kernel_name }}.conf"
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Remove loader entry (UKI mode)
+      when: system_uki_enabled
+      ansible.builtin.file:
+        path: "/boot/loader/entries/arch-{{ kernel_name }}.conf"
+        state: absent

@@ -1,0 +1,61 @@
+---
+# AppArmor Linux Security Module
+
+- name: Install AppArmor
+  when: apparmor_state == 'present'
+  become: true
+  block:
+    - name: Install AppArmor package
+      community.general.pacman:
+        name: apparmor
+        state: present
+
+    - name: Enable AppArmor service
+      ansible.builtin.systemd_service:
+        name: apparmor.service
+        enabled: true
+
+    - name: Start AppArmor service
+      ansible.builtin.systemd_service:
+        name: apparmor.service
+        state: started
+      changed_when: false
+
+    - name: Ensure /etc/cmdline.d exists
+      ansible.builtin.file:
+        path: /etc/cmdline.d
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Configure AppArmor kernel parameters
+      ansible.builtin.copy:
+        dest: /etc/cmdline.d/90-security.conf
+        content: "lsm=landlock,lockdown,yama,integrity,apparmor,bpf"
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Rebuild initramfs
+
+- name: Remove AppArmor
+  when: apparmor_state == 'absent'
+  become: true
+  block:
+    - name: Disable AppArmor service
+      ansible.builtin.systemd_service:
+        name: apparmor.service
+        enabled: false
+        state: stopped
+      failed_when: false
+
+    - name: Remove AppArmor package
+      community.general.pacman:
+        name: apparmor
+        state: absent
+
+    - name: Remove AppArmor kernel parameters
+      ansible.builtin.file:
+        path: /etc/cmdline.d/90-security.conf
+        state: absent
+      notify: Rebuild initramfs

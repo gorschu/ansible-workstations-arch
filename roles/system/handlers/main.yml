@@ -1,0 +1,13 @@
+---
+- name: Rebuild initramfs
+  ansible.builtin.command: mkinitcpio -P
+  become: true
+
+- name: Regenerate locale
+  ansible.builtin.command: locale-gen
+  become: true
+
+- name: Daemon reload
+  ansible.builtin.systemd:
+    daemon_reload: true
+  become: true

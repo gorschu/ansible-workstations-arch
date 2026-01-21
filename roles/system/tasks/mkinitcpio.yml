@@ -1,0 +1,11 @@
+---
+# mkinitcpio - systemd-based hooks
+
+- name: Configure mkinitcpio HOOKS
+  become: true
+  notify: Rebuild initramfs
+  ansible.builtin.lineinfile:
+    path: /etc/mkinitcpio.conf
+    regexp: '^HOOKS=.*'
+    line: 'HOOKS=(base systemd autodetect microcode modconf kms keyboard sd-vconsole block sd-encrypt filesystems fsck)'
+    backup: true

@@ -1,0 +1,25 @@
+---
+# ZFS role defaults
+
+# ZFS state - enable on ZFS hosts via host_vars
+zfs_state: absent
+
+# zrepl for ZFS snapshots/replication
+zrepl_state: absent
+
+# zrepl configuration
+zrepl:
+  poolname: tank
+  snapshot:
+    interval: 15m
+    prefix: zrepl_
+    datasets:
+      - home
+  external:
+    mount_path: /mnt/backup
+    dataset: backup/zrepl
+  # Pruning: keep all for 1h, then 1/hour for 24h, 1/day for 30d, 1/week for 6 months
+  prune_grid: "1x1h(keep=all) | 24x1h | 30x1d | 24x7d"
+
+packages_zfs:
+  - zfs-utils

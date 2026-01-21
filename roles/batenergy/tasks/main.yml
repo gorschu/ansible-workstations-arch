@@ -1,0 +1,29 @@
+---
+# batenergy - battery-aware suspend hook for notebooks
+
+- name: Install batenergy suspend hook
+  when: >
+    batenergy_state == 'present' or
+    (batenergy_state == 'auto' and ansible_form_factor == 'Notebook')
+  become: true
+  block:
+    - name: Ensure systemd sleep hook directory exists
+      ansible.builtin.file:
+        path: /usr/lib/systemd/system-sleep
+        state: directory
+        mode: "0755"
+
+    - name: Download batenergy sleep hook
+      ansible.builtin.get_url:
+        url: https://raw.githubusercontent.com/equaeghe/batenergy/master/batenergy.sh
+        dest: /usr/lib/systemd/system-sleep/99-batenergy.sh
+        mode: "0755"
+
+- name: Remove batenergy suspend hook
+  when: >
+    batenergy_state == 'absent' or
+    (batenergy_state == 'auto' and ansible_form_factor != 'Notebook')
+  become: true
+  ansible.builtin.file:
+    path: /usr/lib/systemd/system-sleep/99-batenergy.sh
+    state: absent

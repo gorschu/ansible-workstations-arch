@@ -1,0 +1,6 @@
+---
+# AUR role defaults
+
+packages_aur:
+  - 1password
+  - 1password-cli

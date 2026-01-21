@@ -1,0 +1,107 @@
+---
+# Virtualization - libvirt/QEMU and Incus
+
+# libvirt/QEMU
+- name: Install libvirt
+  when: libvirt_state == 'present'
+  become: true
+  block:
+    - name: Install libvirt packages
+      community.general.pacman:
+        name: "{{ packages_libvirt }}"
+        state: present
+
+    - name: Add primary user to libvirt group
+      ansible.builtin.user:
+        name: "{{ primary_user }}"
+        groups: libvirt
+        append: true
+
+    - name: Enable libvirtd socket
+      ansible.builtin.systemd_service:
+        name: libvirtd.socket
+        enabled: true
+
+- name: Remove libvirt
+  when: libvirt_state == 'absent'
+  become: true
+  block:
+    - name: Disable libvirtd socket
+      ansible.builtin.systemd_service:
+        name: libvirtd.socket
+        enabled: false
+        state: stopped
+      failed_when: false
+
+    - name: Remove libvirt packages
+      community.general.pacman:
+        name: "{{ packages_libvirt }}"
+        state: absent
+      failed_when: false
+
+# Incus
+- name: Install Incus
+  when: incus_state == 'present'
+  become: true
+  block:
+    - name: Remove iptables (conflicts with iptables-nft)
+      community.general.pacman:
+        name: iptables
+        state: absent
+        force: true
+      failed_when: false
+
+    - name: Install Incus and dependencies
+      community.general.pacman:
+        name:
+          - incus
+          - iptables-nft
+        state: present
+
+    - name: Configure subuid for Incus
+      ansible.builtin.lineinfile:
+        path: /etc/subuid
+        line: "root:1000000:1000000000"
+        create: true
+        mode: "0644"
+
+    - name: Configure subgid for Incus
+      ansible.builtin.lineinfile:
+        path: /etc/subgid
+        line: "root:1000000:1000000000"
+        create: true
+        mode: "0644"
+
+    - name: Add primary user to incus-admin group
+      ansible.builtin.user:
+        name: "{{ primary_user }}"
+        groups: incus-admin
+        append: true
+
+    - name: Enable Incus sockets
+      ansible.builtin.systemd_service:
+        name: "{{ item }}"
+        enabled: true
+        state: started
+      loop:
+        - incus.socket
+        - incus-user.socket
+
+- name: Remove Incus
+  when: incus_state == 'absent'
+  become: true
+  block:
+    - name: Disable Incus sockets
+      ansible.builtin.systemd_service:
+        name: "{{ item }}"
+        enabled: false
+        state: stopped
+      loop:
+        - incus.socket
+        - incus-user.socket
+      failed_when: false
+
+    - name: Remove Incus packages
+      community.general.pacman:
+        name: incus
+        state: absent

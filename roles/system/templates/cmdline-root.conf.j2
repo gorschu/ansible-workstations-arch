@@ -1,0 +1,1 @@
+rd.luks.name={{ system_root_device_uuid_systemd }}=root root=/dev/mapper/root rw{{ ' rootfstype=' + system_root_fstype if system_root_fstype else '' }}{{ ' rootflags=' + system_root_flags if system_root_flags else '' }}{{ ' ' + system_zswap_setting if system_zswap_setting else '' }}

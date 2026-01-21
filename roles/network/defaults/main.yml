@@ -1,0 +1,33 @@
+---
+# Network role defaults
+
+# Network packages
+packages_network:
+  - networkmanager
+  - openssh
+  - avahi
+  - nss-mdns
+  - sshfs
+  - ethtool
+  - wireguard-tools
+  - mtr
+
+# Network services
+network_services:
+  - sshd.service
+  - avahi-daemon.service
+  - NetworkManager.service
+
+# Interface patterns for auto-discovery
+nm_wired_interface_pattern: "^en"
+nm_wifi_interface_pattern: "^wl"
+
+# Tailscale
+tailscale_state: present
+tailscale_accept_routes: true
+
+# WireGuard
+wireguard_state: present
+
+# iwd (iNet Wireless Daemon) - alternative WiFi backend for NetworkManager
+iwd_state: present

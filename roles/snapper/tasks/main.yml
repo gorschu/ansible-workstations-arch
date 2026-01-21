@@ -1,0 +1,90 @@
+---
+# Snapper role - BTRFS snapshot management with snap-pac for automatic pacman snapshots
+
+- name: Install snapper
+  when: snapper_state == 'present'
+  block:
+    - name: Get root filesystem info
+      ansible.builtin.set_fact:
+        snapper_root_fs: "{{ ansible_facts['mounts'] | selectattr('mount', 'equalto', '/') | first }}"
+
+    - name: Verify BTRFS root
+      ansible.builtin.assert:
+        that: snapper_root_fs.fstype == 'btrfs'
+        fail_msg: "Root filesystem is not BTRFS (found: {{ snapper_root_fs.fstype }}). Snapper requires BTRFS."
+
+    - name: Verify snapshots subvolume is mounted
+      ansible.builtin.assert:
+        that: ansible_facts['mounts'] | selectattr('mount', 'equalto', snapper_snapshots_mount) | list | length > 0
+        fail_msg: "{{ snapper_snapshots_mount }} is not mounted. Create @snapshots subvolume at install time."
+
+    - name: Install snapper packages
+      become: true
+      community.general.pacman:
+        name: "{{ packages_snapper }}"
+        state: present
+
+    - name: Ensure snapper configs directory exists
+      become: true
+      ansible.builtin.file:
+        path: /etc/snapper/configs
+        state: directory
+        mode: "0755"
+
+    - name: Deploy snapper root config
+      become: true
+      ansible.builtin.template:
+        src: root.j2
+        dest: /etc/snapper/configs/root
+        mode: "0644"
+      notify: Restart snapper timers
+
+    - name: Register root config in snapper
+      become: true
+      ansible.builtin.lineinfile:
+        path: /etc/conf.d/snapper
+        regexp: '^SNAPPER_CONFIGS='
+        line: 'SNAPPER_CONFIGS="root"'
+        create: true
+        mode: "0644"
+
+    - name: Enable snapper-cleanup timer
+      become: true
+      ansible.builtin.systemd_service:
+        name: snapper-cleanup.timer
+        enabled: true
+        state: started
+
+    # snap-pac automatically creates pre/post snapshots on pacman transactions
+    # No additional configuration needed - it hooks into pacman via alpm hooks
+
+- name: Remove snapper
+  when: snapper_state == 'absent'
+  become: true
+  block:
+    - name: Stop and disable snapper timers
+      ansible.builtin.systemd_service:
+        name: "{{ item }}"
+        enabled: false
+        state: stopped
+      loop:
+        - snapper-cleanup.timer
+        - snapper-timeline.timer
+      failed_when: false
+
+    - name: Remove snapper root config
+      ansible.builtin.file:
+        path: /etc/snapper/configs/root
+        state: absent
+
+    - name: Clear snapper configs registration
+      ansible.builtin.lineinfile:
+        path: /etc/conf.d/snapper
+        regexp: '^SNAPPER_CONFIGS='
+        line: 'SNAPPER_CONFIGS=""'
+
+    - name: Remove snapper packages
+      community.general.pacman:
+        name: "{{ packages_snapper }}"
+        state: absent
+      failed_when: false

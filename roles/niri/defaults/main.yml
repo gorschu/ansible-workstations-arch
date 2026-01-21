@@ -1,0 +1,39 @@
+---
+# Niri role defaults
+
+niri_state: absent
+
+# Use DankMaterialShell as the desktop shell
+# When true: installs DMS (all-in-one desktop shell)
+# When false: installs traditional individual components (fuzzel, mako, waybar, etc.)
+niri_use_dms: true
+
+# Core packages (always installed)
+niri_core_packages:
+  - niri
+  - xdg-desktop-portal-gnome
+  - udiskie
+  - pinentry-qt
+  - wl-clipboard
+  - grim
+  - slurp
+  - brightnessctl
+  - playerctl
+
+# AUR core packages
+niri_core_packages_aur:
+  - xwayland-satellite
+
+# Traditional shell components (when not using DMS)
+niri_traditional_packages:
+  - hyprpaper
+  - hypridle
+  - hyprlock
+  - mako
+  - waybar
+  - swww
+  - cliphist
+  - fuzzel
+
+# DankMaterialShell AUR package (when using DMS)
+niri_dms_package: dms-shell-bin

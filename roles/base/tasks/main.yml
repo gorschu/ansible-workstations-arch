@@ -1,0 +1,29 @@
+---
+# Base system packages and user setup
+
+- name: Install base packages
+  become: true
+  community.general.pacman:
+    name: "{{ packages_base }}"
+    state: present
+
+- name: Configure primary user
+  become: true
+  block:
+    - name: Ensure user groups exist
+      ansible.builtin.group:
+        name: "{{ item }}"
+        state: present
+      loop: "{{ primary_user_groups }}"
+      failed_when: false
+
+    - name: Add primary user to groups
+      ansible.builtin.user:
+        name: "{{ primary_user }}"
+        groups: "{{ primary_user_groups }}"
+        append: true
+
+- name: Set timezone
+  become: true
+  community.general.timezone:
+    name: "{{ timezone }}"

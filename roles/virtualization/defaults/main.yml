@@ -1,0 +1,16 @@
+---
+# Virtualization role defaults
+
+# Incus containers/VMs
+incus_state: present
+
+# libvirt/QEMU
+libvirt_state: present
+
+packages_libvirt:
+  - libvirt
+  - qemu-full
+  - virt-manager
+  - virt-viewer
+  - virt-install
+  - qemu-audio-spice

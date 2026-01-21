@@ -1,0 +1,48 @@
+---
+# iwd (iNet Wireless Daemon) configuration
+
+- name: Configure iwd
+  become: true
+  when: iwd_state == 'present'
+  block:
+    - name: Install iwd
+      community.general.pacman:
+        name: iwd
+        state: present
+
+    - name: Enable and start iwd service
+      ansible.builtin.systemd_service:
+        name: iwd
+        enabled: true
+        state: started
+
+    - name: Configure NetworkManager to use iwd backend
+      ansible.builtin.copy:
+        dest: /etc/NetworkManager/conf.d/wifi_backend.conf
+        content: |
+          [device]
+          wifi.backend=iwd
+        mode: "0644"
+      notify: Restart NetworkManager
+
+- name: Remove iwd configuration
+  become: true
+  when: iwd_state == 'absent'
+  block:
+    - name: Stop and disable iwd service
+      ansible.builtin.systemd_service:
+        name: iwd
+        enabled: false
+        state: stopped
+      failed_when: false
+
+    - name: Remove NetworkManager iwd backend configuration
+      ansible.builtin.file:
+        path: /etc/NetworkManager/conf.d/wifi_backend.conf
+        state: absent
+      notify: Restart NetworkManager
+
+    - name: Remove iwd package
+      community.general.pacman:
+        name: iwd
+        state: absent

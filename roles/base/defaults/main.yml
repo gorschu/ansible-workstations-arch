@@ -1,0 +1,16 @@
+---
+# Base role defaults
+
+# minimum set of packages to get going
+packages_base:
+  - ansible
+  - base-devel
+  - flatpak
+  - git
+  - man-db
+  - man-pages
+  - mise
+  - neovim
+  - pkgfile
+  - python3
+  - zsh

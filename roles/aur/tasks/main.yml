@@ -1,0 +1,42 @@
+---
+# AUR setup - paru helper, aur_builder user, and AUR packages
+
+- name: Configure AUR access
+  become: true
+  block:
+    - name: Install paru from CachyOS repos
+      community.general.pacman:
+        name: paru
+        state: present
+
+    - name: Create aur_builder user
+      ansible.builtin.user:
+        name: aur_builder
+        system: true
+        create_home: true
+        home: /var/lib/aur_builder
+        group: wheel
+
+    - name: Allow aur_builder passwordless pacman
+      ansible.builtin.lineinfile:
+        path: /etc/sudoers.d/11-install-aur_builder
+        line: "aur_builder ALL=(ALL) NOPASSWD: /usr/bin/pacman"
+        create: true
+        mode: "0644"
+        validate: "visudo -cf %s"
+
+- name: Install AUR packages
+  become: true
+  become_user: aur_builder
+  block:
+    - name: Import 1Password GPG key
+      ansible.builtin.command:
+        cmd: gpg --receive-keys 3FEF9748469ADBE15DA7CA80AC2D62742012EA22
+      register: aur_1p_gpg
+      changed_when: '"imported: 1" in aur_1p_gpg.stderr'
+
+    - name: Install AUR packages
+      kewlfft.aur.aur:
+        name: "{{ packages_aur }}"
+        state: present
+      when: packages_aur is defined and packages_aur | length > 0

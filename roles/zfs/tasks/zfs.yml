@@ -1,0 +1,59 @@
+---
+# ZFS core - userspace tools and services
+
+- name: Install ZFS
+  when: zfs_state == 'present'
+  become: true
+  block:
+    - name: Install ZFS packages
+      community.general.pacman:
+        name: "{{ packages_zfs }}"
+        state: present
+
+    - name: Deploy zfs-load-key service
+      ansible.builtin.copy:
+        src: zfs-load-key.service
+        dest: /etc/systemd/system/zfs-load-key.service
+        mode: "0644"
+      notify: Reload systemd
+
+    - name: Enable ZFS services
+      ansible.builtin.systemd_service:
+        name: "{{ item }}"
+        enabled: true
+      loop:
+        - zfs-import-cache.service
+        - zfs-load-key.service
+        - zfs-mount.service
+        - zfs-import.target
+        - zfs.target
+        - zfs-zed.service
+
+- name: Remove ZFS
+  when: zfs_state == 'absent'
+  become: true
+  block:
+    - name: Disable ZFS services
+      ansible.builtin.systemd_service:
+        name: "{{ item }}"
+        enabled: false
+        state: stopped
+      loop:
+        - zfs-zed.service
+        - zfs-load-key.service
+        - zfs-import-cache.service
+        - zfs-mount.service
+        - zfs-import.target
+        - zfs.target
+      failed_when: false
+
+    - name: Remove zfs-load-key service
+      ansible.builtin.file:
+        path: /etc/systemd/system/zfs-load-key.service
+        state: absent
+
+    - name: Remove ZFS packages
+      community.general.pacman:
+        name: "{{ packages_zfs }}"
+        state: absent
+      failed_when: false

@@ -1,0 +1,4 @@
+---
+zfs_state: present
+zrepl_state: present
+kde_state: present

@@ -1,0 +1,47 @@
+---
+# Network configuration - hostname, NetworkManager, WireGuard, Tailscale
+
+- name: Install network packages
+  become: true
+  community.general.pacman:
+    name: "{{ packages_network }}"
+    state: present
+
+- name: Enable network services
+  become: true
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    enabled: true
+  loop: "{{ network_services }}"
+
+- name: Load vault secrets
+  ansible.builtin.include_vars:
+    file: "{{ playbook_dir }}/vault.yml"
+  when: wireguard_state == 'present' or tailscale_state == 'present'
+  no_log: true
+
+- name: Configure hostname
+  ansible.builtin.import_tasks: hostname.yml
+  tags: [hostname]
+
+- name: Configure NetworkManager
+  ansible.builtin.import_tasks: networkmanager.yml
+  tags: [networkmanager]
+
+- name: Configure iwd
+  ansible.builtin.import_tasks: iwd.yml
+  tags: [iwd, wifi]
+
+- name: Configure systemd-resolved
+  ansible.builtin.import_tasks: resolved.yml
+  tags: [resolved, dns]
+
+- name: Configure WireGuard
+  ansible.builtin.import_tasks: wireguard.yml
+  tags: [wireguard, vpn]
+  when: wireguard_state == 'present'
+
+- name: Configure Tailscale
+  ansible.builtin.import_tasks: tailscale.yml
+  tags: [tailscale, vpn, never]
+  when: tailscale_state == 'present'

@@ -1,0 +1,53 @@
+---
+# System role - core system configuration
+
+- name: Install system packages
+  become: true
+  community.general.pacman:
+    name: "{{ packages_system }}"
+    state: present
+
+- name: Ensure CachyOS ZFS kernels are installed
+  become: true
+  community.general.pacman:
+    name: "{{ packages_kernels }}"
+    state: present
+
+- name: Gather package facts
+  ansible.builtin.package_facts:
+    manager: pacman
+
+# --- Early: setup cmdline.d structure ---
+- name: Configure kernel cmdline
+  ansible.builtin.import_tasks: kernel-cmdline.yml
+  tags: [kernel, boot]
+
+- name: Configure mkinitcpio hooks
+  ansible.builtin.import_tasks: mkinitcpio.yml
+  tags: [kernel, mkinitcpio]
+
+# --- Middle: tasks that may add to cmdline.d ---
+- name: Configure AppArmor
+  ansible.builtin.import_tasks: apparmor.yml
+  tags: [security, apparmor]
+
+- name: Configure locale
+  ansible.builtin.import_tasks: locale.yml
+  tags: [locale]
+
+- name: Configure pacman
+  ansible.builtin.import_tasks: pacman.yml
+  tags: [pacman]
+
+- name: Configure nested virtualization
+  ansible.builtin.import_tasks: nested_kvm.yml
+  tags: [virtualization, kvm]
+
+- name: Configure system services
+  ansible.builtin.import_tasks: services.yml
+  tags: [services]
+
+# --- Late: assemble cmdline and finalize boot entries ---
+- name: Finalize kernel boot configuration
+  ansible.builtin.import_tasks: kernel-boot-finalize.yml
+  tags: [kernel, boot]

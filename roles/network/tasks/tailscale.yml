@@ -1,0 +1,49 @@
+---
+# Tailscale configuration
+
+- name: Install and configure Tailscale
+  when:
+    - tailscale_state == 'present'
+    - vault_tailscale_oauth_workstation is defined
+  block:
+    - name: Install Tailscale
+      community.general.pacman:
+        name: tailscale
+        state: present
+      become: true
+
+    - name: Enable Tailscale service
+      ansible.builtin.systemd_service:
+        name: tailscaled.service
+        enabled: true
+        state: started
+      become: true
+
+    - name: Configure Tailscale with OAuth
+      ansible.builtin.include_role:
+        name: artis3n.tailscale.machine
+      vars:
+        tailscale_authkey: "{{ vault_tailscale_oauth_workstation.client_secret }}"
+        tailscale_tags:
+          - "workstation"
+        tailscale_oauth_ephemeral: false
+        tailscale_args: >-
+          --hostname={{ inventory_hostname.split('.')[0] }}
+          --accept-routes={{ 'true' if tailscale_accept_routes else 'false' }}
+
+- name: Remove Tailscale
+  when: tailscale_state == 'absent'
+  become: true
+  block:
+    - name: Disable Tailscale service
+      ansible.builtin.systemd_service:
+        name: tailscaled.service
+        enabled: false
+        state: stopped
+      failed_when: false
+
+    - name: Remove Tailscale package
+      community.general.pacman:
+        name: tailscale
+        state: absent
+      failed_when: false

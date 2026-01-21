@@ -1,0 +1,5 @@
+---
+# batenergy role defaults
+
+# State: auto (detect notebook), present (force install), absent (force remove)
+batenergy_state: auto

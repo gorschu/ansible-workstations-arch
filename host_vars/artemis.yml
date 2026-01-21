@@ -1,0 +1,3 @@
+---
+zfs_state: present
+gaming_enabled: true

@@ -1,0 +1,29 @@
+---
+# Pacman configuration
+
+- name: Configure pacman
+  become: true
+  block:
+    - name: Enable Color
+      ansible.builtin.lineinfile:
+        path: /etc/pacman.conf
+        regexp: "^#?Color"
+        line: "Color"
+
+    - name: Enable CheckSpace
+      ansible.builtin.lineinfile:
+        path: /etc/pacman.conf
+        regexp: "^#?CheckSpace"
+        line: "CheckSpace"
+
+    - name: Enable VerbosePkgLists
+      ansible.builtin.lineinfile:
+        path: /etc/pacman.conf
+        regexp: "^#?VerbosePkgLists"
+        line: "VerbosePkgLists"
+
+    - name: Enable ParallelDownloads
+      ansible.builtin.lineinfile:
+        path: /etc/pacman.conf
+        regexp: "^#?ParallelDownloads"
+        line: "ParallelDownloads = 5"

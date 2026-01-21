@@ -1,0 +1,38 @@
+---
+# WireGuard VPN configuration via NetworkManager
+
+- name: Configure WireGuard connections
+  when:
+    - wireguard_state == 'present'
+    - wireguard_configs is defined
+  block:
+    - name: Check existing WireGuard connections
+      ansible.builtin.command:
+        cmd: nmcli connection show "{{ item.key }}"
+      loop: "{{ wireguard_configs | dict2items }}"
+      register: network_wg_exists
+      changed_when: false
+      failed_when: false
+
+    - name: Import WireGuard connections
+      ansible.builtin.include_tasks: wireguard-import.yml
+      loop: "{{ network_wg_exists.results }}"
+      loop_control:
+        loop_var: wg_connection
+        label: "{{ wg_connection.item.key }}"
+      when: wg_connection.rc != 0
+
+- name: Remove WireGuard connections
+  when:
+    - wireguard_state == 'absent'
+    - wireguard_configs is defined
+  block:
+    - name: Delete WireGuard connections from NetworkManager
+      become: true
+      ansible.builtin.command:
+        cmd: nmcli connection delete "{{ item.key }}"
+      loop: "{{ wireguard_configs | dict2items }}"
+      loop_control:
+        label: "{{ item.key }}"
+      failed_when: false
+      changed_when: true

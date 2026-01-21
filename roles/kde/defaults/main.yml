@@ -1,0 +1,25 @@
+---
+# KDE Plasma role defaults
+
+kde_state: absent
+
+# Use minimal installation (plasma-desktop) vs full (plasma-meta)
+kde_minimal: false
+
+# Packages
+kde_packages_full:
+  - plasma-meta
+  - sddm
+
+kde_packages_minimal:
+  - plasma-desktop
+  - sddm
+
+# Optional: common KDE applications (not installed by default)
+kde_applications:
+  - dolphin
+  - flatpak-kcm # permission management for kcm
+  - konsole
+  - okular
+  - spectacle
+  - kdeconnect

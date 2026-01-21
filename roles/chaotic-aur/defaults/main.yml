@@ -1,0 +1,8 @@
+---
+# Chaotic-AUR role defaults
+
+chaotic_aur_state: present
+
+chaotic_aur_keyserver: keyserver.ubuntu.com
+chaotic_aur_key: 3056513887B78AEB
+chaotic_aur_mirror: https://cdn-mirror.chaotic.cx/chaotic-aur

@@ -1,0 +1,29 @@
+# Managed by Ansible - snapper config for root subvolume
+# See snapper-configs(5) for details
+
+SUBVOLUME="/"
+FSTYPE="btrfs"
+ALLOW_USERS=""
+ALLOW_GROUPS=""
+
+# Timeline snapshots - disabled, we only want pacman snapshots via snap-pac
+TIMELINE_CREATE="{{ snapper_config.TIMELINE_CREATE }}"
+TIMELINE_LIMIT_HOURLY="{{ snapper_config.TIMELINE_LIMIT_HOURLY }}"
+TIMELINE_LIMIT_DAILY="{{ snapper_config.TIMELINE_LIMIT_DAILY }}"
+TIMELINE_LIMIT_WEEKLY="{{ snapper_config.TIMELINE_LIMIT_WEEKLY }}"
+TIMELINE_LIMIT_MONTHLY="{{ snapper_config.TIMELINE_LIMIT_MONTHLY }}"
+TIMELINE_LIMIT_YEARLY="{{ snapper_config.TIMELINE_LIMIT_YEARLY }}"
+
+# Number-based cleanup for snap-pac pre/post pacman snapshots
+NUMBER_CLEANUP="{{ snapper_config.NUMBER_CLEANUP }}"
+NUMBER_LIMIT="{{ snapper_config.NUMBER_LIMIT }}"
+NUMBER_LIMIT_IMPORTANT="{{ snapper_config.NUMBER_LIMIT_IMPORTANT }}"
+NUMBER_MIN_AGE="1800"
+
+# Cleanup settings
+EMPTY_PRE_POST_CLEANUP="yes"
+EMPTY_PRE_POST_MIN_AGE="1800"
+
+# Comparison
+SYNC_ACL="{{ snapper_config.SYNC_ACL }}"
+BACKGROUND_COMPARISON="{{ snapper_config.BACKGROUND_COMPARISON }}"

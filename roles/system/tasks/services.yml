@@ -1,0 +1,11 @@
+---
+# System services
+
+- name: Enable system services
+  become: true
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+  loop: "{{ system_services }}"
+  failed_when: false

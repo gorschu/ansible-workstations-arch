@@ -1,0 +1,31 @@
+---
+# WireGuard connection import tasks (included via loop)
+
+- name: Write WireGuard config to temp file
+  ansible.builtin.copy:
+    content: "{{ wg_connection.item.value.config }}"
+    dest: "/tmp/{{ wg_connection.item.key }}.conf"
+    mode: "0600"
+  become: true
+  no_log: true
+
+- name: Import WireGuard connection
+  ansible.builtin.command:
+    cmd: "nmcli connection import type wireguard file /tmp/{{ wg_connection.item.key }}.conf"
+  become: true
+  changed_when: true
+  notify: Reload NetworkManager
+
+- name: Configure autoconnect
+  ansible.builtin.command:
+    cmd: >-
+      nmcli connection modify "{{ wg_connection.item.key }}"
+      connection.autoconnect {{ 'yes' if wg_connection.item.value.autoconnect | default(false) else 'no' }}
+  become: true
+  changed_when: true
+
+- name: Remove temp WireGuard config
+  ansible.builtin.file:
+    path: "/tmp/{{ wg_connection.item.key }}.conf"
+    state: absent
+  become: true

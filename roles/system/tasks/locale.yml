@@ -1,0 +1,22 @@
+---
+# Locale configuration
+
+- name: Configure locale
+  become: true
+  block:
+    - name: Enable locales in locale.gen
+      ansible.builtin.lineinfile:
+        path: /etc/locale.gen
+        regexp: "^#?{{ item }} "
+        line: "{{ item }} UTF-8"
+      loop: "{{ system_locales }}"
+      notify: Regenerate locale
+
+    - name: Set default locale
+      ansible.builtin.copy:
+        dest: /etc/locale.conf
+        content: |
+          LANG={{ system_locale_default }}
+        owner: root
+        group: root
+        mode: "0644"

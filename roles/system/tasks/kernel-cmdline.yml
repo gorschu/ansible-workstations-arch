@@ -1,0 +1,115 @@
+---
+# Kernel cmdline setup - populates /etc/cmdline.d/
+# This runs EARLY - other tasks can add their own cmdline.d files
+# The actual assembly and boot entry templating happens in kernel-boot-finalize.yml
+
+- name: Configure kernel cmdline
+  become: true
+  block:
+    # Extract config from running system
+    - name: Read current kernel cmdline
+      ansible.builtin.slurp:
+        src: /proc/cmdline
+      register: system_proc_cmdline
+
+    - name: Parse running cmdline
+      ansible.builtin.set_fact:
+        system_proc_cmdline_str: "{{ system_proc_cmdline.content | b64decode | trim }}"
+
+    - name: Extract root filesystem type
+      vars:
+        match: "{{ system_proc_cmdline_str | regex_search('rootfstype=(\\S+)', '\\1') }}"
+      ansible.builtin.set_fact:
+        system_root_fstype: "{{ match[0] | default('') }}"
+
+    - name: Extract root flags
+      vars:
+        match: "{{ system_proc_cmdline_str | regex_search('rootflags=(\\S+)', '\\1') }}"
+      ansible.builtin.set_fact:
+        system_root_flags: "{{ match[0] | default('') }}"
+
+    - name: Extract zswap setting
+      vars:
+        match: "{{ system_proc_cmdline_str | regex_search('(zswap\\.\\S+)', '\\1') }}"
+      ansible.builtin.set_fact:
+        system_zswap_setting: "{{ match[0] | default('') }}"
+
+    # Get LUKS UUID
+    - name: Check where /dev/mapper/root points
+      ansible.builtin.stat:
+        path: /dev/mapper/root
+      register: system_root_link
+
+    - name: Get LUKS partition UUID for root
+      ansible.builtin.set_fact:
+        system_root_device_uuid: >-
+          {{ (ansible_facts.device_links["ids"][(system_root_link.stat.lnk_source | basename)]
+              | map("regex_search", ".*CRYPT-LUKS.*")
+              | select("string"))[0]
+              | regex_search("[0-9a-z]+-root$")
+              | regex_search("[0-9a-z]+") }}
+      when: system_root_link.stat.exists
+
+    - name: Assert valid UUID
+      ansible.builtin.assert:
+        that:
+          - system_root_device_uuid | length == 32
+        fail_msg: "Could not determine valid LUKS UUID for root device"
+      when: system_root_link.stat.exists
+
+    - name: Format UUID for systemd (with dashes)
+      vars:
+        uuid: "{{ system_root_device_uuid }}"
+      ansible.builtin.set_fact:
+        system_root_device_uuid_systemd: >-
+          {{ uuid[0:8] }}-{{ uuid[8:12] }}-{{ uuid[12:16] }}-{{ uuid[16:20] }}-{{ uuid[20:] }}
+      when: system_root_link.stat.exists
+
+    # Setup cmdline.d
+    - name: Ensure /etc/cmdline.d exists
+      ansible.builtin.file:
+        path: /etc/cmdline.d
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Backup archinstall cmdline if present
+      ansible.builtin.copy:
+        src: /etc/kernel/cmdline
+        dest: /etc/kernel/cmdline.archinstall
+        remote_src: true
+        owner: root
+        group: root
+        mode: "0644"
+      failed_when: false
+      changed_when: false
+
+    - name: Remove archinstall cmdline
+      ansible.builtin.file:
+        path: /etc/kernel/cmdline
+        state: absent
+
+    - name: Configure root cmdline
+      ansible.builtin.template:
+        src: cmdline-root.conf.j2
+        dest: /etc/cmdline.d/00-root.conf
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Rebuild initramfs
+
+    - name: Configure LUKS SSD TRIM
+      ansible.builtin.copy:
+        dest: /etc/cmdline.d/10-discards.conf
+        content: "rd.luks.options=discard"
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Rebuild initramfs
+
+    - name: Remove archinstall loader entries
+      ansible.builtin.shell: |
+        find /boot/loader/entries -name '*_linux*.conf' -delete
+      changed_when: false
+      failed_when: false

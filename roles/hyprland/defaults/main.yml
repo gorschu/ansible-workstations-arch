@@ -1,0 +1,36 @@
+---
+# Hyprland role defaults
+
+hyprland_state: absent
+
+# Use DankMaterialShell as the desktop shell
+# When true: installs DMS (all-in-one desktop shell)
+# When false: installs traditional individual components (fuzzel, mako, waybar, etc.)
+hyprland_use_dms: true
+
+# Core packages (always installed)
+hyprland_core_packages:
+  - hyprland
+  - xdg-desktop-portal-hyprland
+  - hyprpaper
+  - hypridle
+  - hyprlock
+  - hyprpolkitagent
+  - udiskie
+  - pinentry-qt
+  - wl-clipboard
+  - grim
+  - slurp
+  - brightnessctl
+  - playerctl
+
+# Traditional shell components (when not using DMS)
+hyprland_traditional_packages:
+  - mako
+  - waybar
+  - swww
+  - cliphist
+  - fuzzel
+
+# DankMaterialShell AUR package (when using DMS)
+hyprland_dms_package: dms-shell-bin

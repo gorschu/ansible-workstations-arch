@@ -1,0 +1,38 @@
+---
+# Nested KVM virtualization
+
+- name: Enable nested virtualization
+  when: nested_kvm_state == 'present'
+  become: true
+  block:
+    - name: Enable nested KVM for Intel
+      ansible.builtin.copy:
+        dest: /etc/modprobe.d/kvm_intel.conf
+        content: |
+          options kvm_intel nested=1
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Enable nested KVM for AMD
+      ansible.builtin.copy:
+        dest: /etc/modprobe.d/kvm_amd.conf
+        content: |
+          options kvm_amd nested=1
+        owner: root
+        group: root
+        mode: "0644"
+
+- name: Disable nested virtualization
+  when: nested_kvm_state == 'absent'
+  become: true
+  block:
+    - name: Remove Intel nested KVM config
+      ansible.builtin.file:
+        path: /etc/modprobe.d/kvm_intel.conf
+        state: absent
+
+    - name: Remove AMD nested KVM config
+      ansible.builtin.file:
+        path: /etc/modprobe.d/kvm_amd.conf
+        state: absent

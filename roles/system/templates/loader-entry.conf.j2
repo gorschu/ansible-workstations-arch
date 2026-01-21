@@ -1,0 +1,7 @@
+# systemd-boot loader entry for '{{ kernel_name }}'
+# {{ ansible_managed }}
+
+title   Arch Linux ({{ kernel_name }})
+linux   /vmlinuz-{{ kernel_name }}
+initrd  /initramfs-{{ kernel_name }}.img
+options {{ system_kernel_cmdline }}

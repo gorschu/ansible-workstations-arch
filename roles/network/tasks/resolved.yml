@@ -1,0 +1,21 @@
+---
+# systemd-resolved configuration
+
+- name: Configure systemd-resolved
+  become: true
+  block:
+    - name: Enable systemd-resolved
+      ansible.builtin.systemd_service:
+        name: systemd-resolved
+        enabled: true
+        state: started
+
+    - name: Symlink resolv.conf to systemd-resolved stub
+      ansible.builtin.file:
+        src: /run/systemd/resolve/stub-resolv.conf
+        dest: /etc/resolv.conf
+        state: link
+        force: true
+        follow: false
+        owner: root
+        group: root

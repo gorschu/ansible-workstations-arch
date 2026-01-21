@@ -1,0 +1,15 @@
+# mkinitcpio preset file for '{{ kernel_name }}'
+# {{ ansible_managed }}
+
+ALL_kver="/boot/vmlinuz-{{ kernel_name }}"
+
+PRESETS=('default')
+
+{% if system_uki_enabled %}
+# UKI boot
+default_uki="/boot/EFI/Linux/arch-{{ kernel_name }}.efi"
+default_options="--splash /usr/share/systemd/bootctl/splash-arch.bmp"
+{% else %}
+# Traditional initramfs boot
+default_image="/boot/initramfs-{{ kernel_name }}.img"
+{% endif %}

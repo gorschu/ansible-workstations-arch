@@ -1,0 +1,59 @@
+---
+# Hyprland Wayland compositor with optional DankMaterialShell
+
+- name: Install Hyprland
+  when: hyprland_state == 'present'
+  block:
+    - name: Install Hyprland core packages
+      become: true
+      community.general.pacman:
+        name: "{{ hyprland_core_packages }}"
+        state: present
+
+    - name: Install traditional shell components
+      when: not hyprland_use_dms
+      become: true
+      community.general.pacman:
+        name: "{{ hyprland_traditional_packages }}"
+        state: present
+
+    - name: Install DankMaterialShell
+      when: hyprland_use_dms
+      block:
+        - name: Install DMS from AUR
+          become: true
+          become_user: aur_builder
+          kewlfft.aur.aur:
+            name: "{{ hyprland_dms_package }}"
+            state: present
+
+        - name: Remove traditional shell components (using DMS)
+          become: true
+          community.general.pacman:
+            name: "{{ hyprland_traditional_packages }}"
+            state: absent
+          failed_when: false
+
+- name: Remove Hyprland
+  when: hyprland_state == 'absent'
+  block:
+    - name: Remove DMS
+      become: true
+      become_user: aur_builder
+      kewlfft.aur.aur:
+        name: "{{ hyprland_dms_package }}"
+        state: absent
+      failed_when: false
+
+    - name: Remove traditional shell components
+      become: true
+      community.general.pacman:
+        name: "{{ hyprland_traditional_packages }}"
+        state: absent
+      failed_when: false
+
+    - name: Remove Hyprland core packages
+      become: true
+      community.general.pacman:
+        name: "{{ hyprland_core_packages }}"
+        state: absent

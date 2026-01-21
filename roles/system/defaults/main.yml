@@ -1,0 +1,41 @@
+---
+# System role defaults
+
+# UKI (Unified Kernel Image) boot: disabled by default due to TPM issues with systemd 259
+system_uki_enabled: false
+
+# Root filesystem configuration is auto-detected from /proc/cmdline
+
+packages_system:
+  - fwupd
+  - dosfstools
+  - gdisk
+  - parted
+  - tuned
+  - tuned-ppd
+
+# CachyOS ZFS kernels - installed via bootstrap, listed here for reference/enforcement
+packages_kernels:
+  - linux-cachyos-zfs
+  - linux-cachyos-headers
+  - linux-cachyos-lts-zfs
+  - linux-cachyos-lts-headers
+
+# AppArmor state: present or absent
+apparmor_state: present
+
+# Locale configuration
+system_locales:
+  - en_US.UTF-8
+  - de_DE.UTF-8
+
+system_locale_default: en_US.UTF-8
+
+# Nested virtualization: present or absent
+nested_kvm_state: present
+
+# System services to enable
+system_services:
+  - bluetooth.service
+  - tuned.service
+  - tuned-ppd.service

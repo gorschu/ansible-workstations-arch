@@ -1,0 +1,61 @@
+---
+# Main playbook - REQUIRES VAULT (1Password integration)
+# Run after bootstrap.yml and signing into 1Password
+#
+# Usage: ./run-playbook.sh
+# Or:    ansible-playbook local.yml --ask-become-pass --ask-vault-pass
+#
+# For testing against a VM:
+#   ./run-playbook.sh -l arch-test
+
+- name: Configure Arch Workstation
+  hosts: all
+  gather_facts: true
+
+  vars_files:
+    - group_vars/all/main.yml
+    # vault.yml loaded by roles that need it (network)
+
+  pre_tasks:
+    - name: Update pacman cache
+      become: true
+      community.general.pacman:
+        update_cache: true
+      tags: [always]
+
+  roles:
+    - role: chaotic-aur
+      tags: [chaotic-aur, aur, repos]
+
+    - role: aur
+      tags: [aur, packages]
+
+    - role: base
+      tags: [base, packages]
+
+    - role: system
+      tags: [system, kernel, boot]
+
+    - role: network
+      tags: [network, networking]
+
+    - role: virtualization
+      tags: [virtualization, libvirt, incus, containers]
+
+    - role: hyprland
+      tags: [hyprland, wayland, desktop]
+
+    - role: niri
+      tags: [niri, wayland, desktop]
+
+    - role: kde
+      tags: [kde, plasma, desktop]
+
+    - role: zfs
+      tags: [zfs, zrepl, backup]
+
+    - role: snapper
+      tags: [snapper, btrfs, backup]
+
+    - role: batenergy
+      tags: [batenergy, power, notebook]

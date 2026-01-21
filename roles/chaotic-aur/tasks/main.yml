@@ -1,0 +1,59 @@
+---
+# Chaotic-AUR - pre-built AUR packages repository
+
+- name: Install Chaotic-AUR
+  when: chaotic_aur_state == 'present'
+  become: true
+  block:
+    - name: Receive Chaotic-AUR signing key
+      ansible.builtin.command:
+        cmd: pacman-key --recv-key {{ chaotic_aur_key }} --keyserver {{ chaotic_aur_keyserver }}
+      register: chaotic_aur_recv_key
+      changed_when: chaotic_aur_recv_key.rc == 0
+      failed_when: false
+
+    - name: Locally sign Chaotic-AUR key
+      ansible.builtin.command:
+        cmd: pacman-key --lsign-key {{ chaotic_aur_key }}
+      changed_when: false
+
+    - name: Install chaotic-keyring
+      community.general.pacman:
+        name: "{{ chaotic_aur_mirror }}/chaotic-keyring.pkg.tar.zst"
+        state: present
+
+    - name: Install chaotic-mirrorlist
+      community.general.pacman:
+        name: "{{ chaotic_aur_mirror }}/chaotic-mirrorlist.pkg.tar.zst"
+        state: present
+
+    - name: Add Chaotic-AUR repository to pacman.conf
+      ansible.builtin.blockinfile:
+        path: /etc/pacman.conf
+        marker: "# {mark} ANSIBLE MANAGED - chaotic-aur"
+        block: |
+          [chaotic-aur]
+          Include = /etc/pacman.d/chaotic-mirrorlist
+      notify: Update pacman cache
+
+- name: Remove Chaotic-AUR
+  when: chaotic_aur_state == 'absent'
+  become: true
+  block:
+    - name: Remove Chaotic-AUR repository from pacman.conf
+      ansible.builtin.blockinfile:
+        path: /etc/pacman.conf
+        marker: "# {mark} ANSIBLE MANAGED - chaotic-aur"
+        state: absent
+
+    - name: Remove chaotic-mirrorlist
+      community.general.pacman:
+        name: chaotic-mirrorlist
+        state: absent
+      failed_when: false
+
+    - name: Remove chaotic-keyring
+      community.general.pacman:
+        name: chaotic-keyring
+        state: absent
+      failed_when: false

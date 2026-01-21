@@ -1,0 +1,55 @@
+---
+# Kernel boot finalization - assembles cmdline and templates boot entries
+# This runs LATE - after all cmdline.d files have been created
+
+# Detect installed kernels
+- name: Find installed kernel presets
+  ansible.builtin.find:
+    paths: /etc/mkinitcpio.d
+    patterns: ".*\\.preset$"
+    use_regex: true
+  register: system_kernel_presets
+
+- name: Extract kernel names
+  ansible.builtin.set_fact:
+    system_installed_kernels: >-
+      {{ system_kernel_presets.files
+         | map(attribute='path')
+         | map('basename')
+         | map('regex_replace', '\.preset$', '')
+         | list }}
+
+# Assemble cmdline from all cmdline.d files
+- name: Assemble kernel cmdline
+  become: true
+  ansible.builtin.assemble:
+    src: /etc/cmdline.d
+    dest: /etc/kernel/cmdline.assembled
+    delimiter: " "
+    mode: "0644"
+
+- name: Read assembled cmdline
+  ansible.builtin.slurp:
+    src: /etc/kernel/cmdline.assembled
+  register: system_cmdline_content
+
+- name: Set cmdline fact
+  ansible.builtin.set_fact:
+    system_kernel_cmdline: "{{ system_cmdline_content.content | b64decode | regex_replace('\\n', ' ') | trim }}"
+
+# Configure systemd-boot loader
+- name: Configure systemd-boot loader.conf
+  become: true
+  ansible.builtin.template:
+    src: loader.conf.j2
+    dest: /boot/loader/loader.conf
+    owner: root
+    group: root
+    mode: "0644"
+
+# Template presets and loader entries for each kernel
+- name: Configure kernel boot
+  ansible.builtin.include_tasks: kernel-boot.yml
+  loop: "{{ system_installed_kernels }}"
+  loop_control:
+    loop_var: kernel_name
