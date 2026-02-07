@@ -42,14 +42,24 @@ ARCHZFS_KEY=3A9917BF0DED5C13F69AC68FABEC0A1208037BE9
 # --- Detect ZFS partition 9 ---
 if sgdisk -p "$DISK" 2>/dev/null | awk '{print $1}' | grep -qx '9'; then
   ZFS_PRESERVE=true
-  echo "ZFS partition 9 found on ${DISK} — preserving"
+  ZFS_START=$(sgdisk -i 9 "$DISK" | awk '/^First sector:/{print $3}')
+  if [[ -z "$ZFS_START" || "$ZFS_START" -lt 1 ]]; then
+    echo "ERROR: could not determine start sector of ZFS partition 9"
+    exit 1
+  fi
+  echo "ZFS partition 9 found on ${DISK} — preserving (starts at sector ${ZFS_START})"
 else
   ZFS_PRESERVE=false
   echo "No ZFS partition on ${DISK} — full wipe"
 fi
 
+if [[ "$ZFS_PRESERVE" == true ]]; then
+  BTRFS_LABEL="fill to ZFS"
+else
+  BTRFS_LABEL="${BTRFS_SIZE}"
+fi
 LAYOUT="$(part "$DISK" 1) - 1G EFI (/boot)
-$(part "$DISK" 2) - ${BTRFS_SIZE} LUKS2 + btrfs (@ @home)
+$(part "$DISK" 2) - ${BTRFS_LABEL} LUKS2 + btrfs (@ @home)
 $([[ "$ZFS_PRESERVE" == true ]] && echo "$(part "$DISK" 9) - ZFS (preserved)" || echo "rest free for ZFS")"
 
 echo ""
@@ -66,7 +76,11 @@ else
   sgdisk -Z "$DISK"
 fi
 sgdisk -n 1:0:+1G -t 1:ef00 -c 1:EFI "$DISK"
-sgdisk -n 2:0:+${BTRFS_SIZE} -t 2:8309 -c 2:cryptroot "$DISK"
+if [[ "$ZFS_PRESERVE" == true ]]; then
+  sgdisk -n "2:0:$((ZFS_START - 1))" -t 2:8309 -c 2:cryptroot "$DISK"
+else
+  sgdisk -n 2:0:+${BTRFS_SIZE} -t 2:8309 -c 2:cryptroot "$DISK"
+fi
 partprobe "$DISK"
 sleep 1
 
