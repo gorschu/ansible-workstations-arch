@@ -25,6 +25,7 @@ wayland_common_packages:
 
 # Primary user
 primary_user: gorschu
+primary_user_home: /home/{{ primary_user }}
 primary_user_uid: 1000
 primary_user_groups:
   - wheel

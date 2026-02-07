@@ -1,18 +1,6 @@
 ---
 # Base system configuration - paru bootstrap, sysctl, core utilities
 
-- name: Look up primary user home directory
-  become: true
-  block:
-    - name: Get passwd entry for primary user
-      ansible.builtin.getent:
-        database: passwd
-        key: "{{ primary_user }}"
-
-    - name: Set primary_user_home fact
-      ansible.builtin.set_fact:
-        primary_user_home: "{{ ansible_facts['getent_passwd'][primary_user][4] }}"
-
 - name: Set up chaotic-aur and install packages
   become: true
   block:
@@ -52,7 +40,6 @@
           - base-devel
           - paru
         state: present
-        update_cache: true
 
     - name: Allow passwordless sudo for pacman (needed for paru)
       ansible.builtin.copy:
