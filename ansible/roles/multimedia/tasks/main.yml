@@ -1,0 +1,15 @@
+---
+# Multimedia codecs and hardware acceleration
+
+- name: Install multimedia codecs and hardware acceleration
+  become: true
+  block:
+    - name: Install multimedia codecs
+      community.general.pacman:
+        name: "{{ multimedia_packages }}"
+        state: present
+
+    - name: Install hardware acceleration drivers
+      community.general.pacman:
+        name: "{{ multimedia_hw_accel_packages }}"
+        state: present

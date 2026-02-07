@@ -1,0 +1,51 @@
+---
+# Networking configuration - hostname, NetworkManager, WireGuard, Tailscale
+
+- name: Replace legacy iptables with iptables-nft
+  become: true
+  block:
+    - name: Remove legacy iptables
+      community.general.pacman:
+        name: iptables
+        state: absent
+        force: true
+
+    - name: Install iptables-nft
+      community.general.pacman:
+        name: iptables-nft
+        state: present
+
+- name: Install networking packages
+  become: true
+  community.general.pacman:
+    name: "{{ networking_packages }}"
+    state: present
+
+- name: Enable and start firewalld
+  become: true
+  ansible.builtin.systemd_service:
+    name: firewalld.service
+    enabled: true
+    state: started
+
+- name: Load vault secrets
+  ansible.builtin.include_vars:
+    file: "{{ playbook_dir }}/vault.yml"
+  no_log: true
+  tags: [networking, tailscale, wireguard, networkmanager, hostname]
+
+- name: Configure hostname
+  ansible.builtin.import_tasks: hostname.yml
+  tags: [hostname]
+
+- name: Configure NetworkManager
+  ansible.builtin.import_tasks: networkmanager.yml
+  tags: [networkmanager]
+
+- name: Configure WireGuard
+  ansible.builtin.import_tasks: wireguard.yml
+  tags: [wireguard, vpn]
+
+- name: Configure Tailscale
+  ansible.builtin.import_tasks: tailscale.yml
+  tags: [tailscale, vpn]

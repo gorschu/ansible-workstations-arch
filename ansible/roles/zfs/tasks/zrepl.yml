@@ -1,0 +1,59 @@
+---
+# zrepl - ZFS snapshot and replication daemon (AUR: zrepl-bin)
+
+- name: Install zrepl
+  when:
+    - zfs_state == 'present'
+    - zfs_zrepl_state == 'present'
+  become: true
+  block:
+    - name: Install zrepl from AUR
+      become_user: "{{ primary_user }}"
+      environment:
+        HOME: "{{ primary_user_home }}"
+      ansible.builtin.command:
+        cmd: paru -S --noconfirm --needed zrepl-bin
+      register: zrepl_paru_result
+      changed_when: "'there is nothing to do' not in zrepl_paru_result.stdout"
+
+    - name: Ensure /etc/zrepl exists
+      ansible.builtin.file:
+        path: /etc/zrepl
+        state: directory
+        mode: "0755"
+        owner: root
+        group: root
+
+    - name: Deploy zrepl configuration
+      ansible.builtin.template:
+        src: zrepl.yml.j2
+        dest: /etc/zrepl/zrepl.yml
+        mode: "0644"
+      notify: Restart zrepl
+
+    - name: Enable zrepl service
+      ansible.builtin.systemd_service:
+        name: zrepl.service
+        enabled: true
+        state: started
+
+- name: Remove zrepl
+  when: zfs_zrepl_state == 'absent'
+  become: true
+  block:
+    - name: Disable zrepl service
+      ansible.builtin.systemd_service:
+        name: zrepl.service
+        enabled: false
+        state: stopped
+      failed_when: false
+
+    - name: Remove zrepl package
+      become_user: "{{ primary_user }}"
+      environment:
+        HOME: "{{ primary_user_home }}"
+      ansible.builtin.command:
+        cmd: paru -Rns --noconfirm zrepl-bin
+      register: zrepl_paru_remove
+      changed_when: zrepl_paru_remove.rc == 0
+      failed_when: false

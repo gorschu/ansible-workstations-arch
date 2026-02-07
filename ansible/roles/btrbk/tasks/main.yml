@@ -1,0 +1,171 @@
+---
+# btrbk - btrfs snapshot management for root and home
+# Important data lives on ZFS; this is a safety net
+
+- name: Install btrbk
+  when: btrbk_state == 'present'
+  block:
+    - name: Discover btrfs root device
+      ansible.builtin.set_fact:
+        btrbk_device: "{{ item.device }}"
+      when: item.fstype == 'btrfs' and item.mount == '/'
+      loop: "{{ ansible_facts['mounts'] }}"
+
+    - name: Verify btrfs root device was found
+      ansible.builtin.fail:
+        msg: "No btrfs filesystem found mounted at /. This role requires btrfs."
+      when: btrbk_device is not defined
+
+    - name: Btrbk setup
+      become: true
+      block:
+        - name: Install btrbk
+          community.general.pacman:
+            name: btrbk
+            state: present
+
+        - name: Mask shipped btrbk.service to prevent conflicts
+          ansible.builtin.systemd_service:
+            name: btrbk.service
+            masked: true
+
+        - name: Mask shipped btrbk.timer to prevent conflicts
+          ansible.builtin.systemd_service:
+            name: btrbk.timer
+            masked: true
+
+        - name: Deploy btrfs_root.mount unit
+          ansible.builtin.template:
+            src: mnt-btrfs-root.mount.j2
+            dest: /etc/systemd/system/mnt-btrfs_root.mount
+            mode: "0644"
+          notify: Systemd daemon-reload
+
+        - name: Flush handlers to reload systemd
+          ansible.builtin.meta: flush_handlers
+
+        - name: Create btrfs root mount point
+          ansible.builtin.file:
+            path: /mnt/btrfs_root
+            state: directory
+            mode: "0755"
+
+        - name: Create snapshots directory
+          ansible.builtin.file:
+            path: /mnt/btrfs_root/snapshots
+            state: directory
+            mode: "0755"
+
+        - name: Enable and start btrfs_root mount
+          ansible.builtin.systemd_service:
+            name: mnt-btrfs_root.mount
+            state: started
+            enabled: true
+
+        - name: Create btrbk configuration directory
+          ansible.builtin.file:
+            path: /etc/btrbk
+            state: directory
+            mode: "0755"
+
+        - name: Deploy btrbk configurations
+          ansible.builtin.template:
+            src: "{{ item.src }}"
+            dest: "/etc/btrbk/{{ item.dest }}"
+            mode: "0644"
+          loop:
+            - {src: btrbk-root.conf.j2, dest: btrbk-root.conf}
+            - {src: btrbk-home.conf.j2, dest: btrbk-home.conf}
+
+        - name: Deploy btrbk timers
+          ansible.builtin.copy:
+            src: "{{ item }}"
+            dest: "/etc/systemd/system/{{ item }}"
+            mode: "0644"
+          loop:
+            - btrbk-root.timer
+            - btrbk-home.timer
+          notify: Systemd daemon-reload
+
+        - name: Deploy btrbk services
+          ansible.builtin.copy:
+            src: "{{ item }}"
+            dest: "/etc/systemd/system/{{ item }}"
+            mode: "0644"
+          loop:
+            - btrbk-root.service
+            - btrbk-home.service
+          notify: Systemd daemon-reload
+
+        - name: Flush handlers to reload systemd
+          ansible.builtin.meta: flush_handlers
+
+        - name: Enable and start btrbk timers
+          ansible.builtin.systemd_service:
+            name: "{{ item }}"
+            state: started
+            enabled: true
+          loop:
+            - btrbk-root.timer
+            - btrbk-home.timer
+
+        - name: Remove old single btrbk config if present
+          ansible.builtin.file:
+            path: /etc/btrbk/btrbk.conf
+            state: absent
+
+- name: Remove btrbk
+  when: btrbk_state == 'absent'
+  become: true
+  block:
+    - name: Stop and disable btrbk timers
+      ansible.builtin.systemd_service:
+        name: "{{ item }}"
+        state: stopped
+        enabled: false
+      loop:
+        - btrbk-root.timer
+        - btrbk-home.timer
+      failed_when: false
+
+    - name: Stop and disable btrfs_root mount
+      ansible.builtin.systemd_service:
+        name: mnt-btrfs_root.mount
+        state: stopped
+        enabled: false
+      failed_when: false
+
+    - name: Remove btrbk systemd units
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/systemd/system/btrbk-root.timer
+        - /etc/systemd/system/btrbk-root.service
+        - /etc/systemd/system/btrbk-home.timer
+        - /etc/systemd/system/btrbk-home.service
+        - /etc/systemd/system/mnt-btrfs_root.mount
+      notify: Systemd daemon-reload
+
+    - name: Remove btrbk configurations
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/btrbk/btrbk-root.conf
+        - /etc/btrbk/btrbk-home.conf
+
+    - name: Unmask shipped btrbk services
+      ansible.builtin.systemd_service:
+        name: "{{ item }}"
+        masked: false
+      loop:
+        - btrbk.service
+        - btrbk.timer
+      failed_when: false
+
+    - name: Remove btrbk package
+      community.general.pacman:
+        name: btrbk
+        state: absent
+      failed_when: false

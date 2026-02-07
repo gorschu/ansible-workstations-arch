@@ -1,0 +1,26 @@
+---
+# Niri wayland compositor and ecosystem
+
+- name: Niri installation
+  when: niri_state == 'present'
+  block:
+    - name: Install shared Wayland packages
+      become: true
+      community.general.pacman:
+        name: "{{ wayland_common_packages }}"
+        state: present
+
+    - name: Install Niri core components
+      become: true
+      community.general.pacman:
+        name: "{{ niri_core_packages + niri_theming_packages }}"
+        state: present
+
+- name: Niri removal
+  when: niri_state == 'absent'
+  block:
+    - name: Remove Niri core components
+      become: true
+      community.general.pacman:
+        name: "{{ niri_core_packages }}"
+        state: absent

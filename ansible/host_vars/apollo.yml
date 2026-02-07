@@ -1,0 +1,9 @@
+---
+kde_state: present
+hyprland_state: present
+
+networking_tailscale_state: absent
+
+zfs_state: present
+zfs_zrepl_state: present
+btrbk_state: present

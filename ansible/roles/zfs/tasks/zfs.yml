@@ -1,0 +1,95 @@
+---
+# ZFS post-install - services, datasets, and permissions
+# archzfs repo + kernel module are handled by arch-install.sh
+
+- name: Configure ZFS
+  when: zfs_state == 'present'
+  become: true
+  block:
+    - name: Deploy zfs-load-key service for encrypted pools
+      ansible.builtin.copy:
+        src: zfs-load-key.service
+        dest: /etc/systemd/system/zfs-load-key.service
+        mode: "0644"
+      notify: Reload systemd
+
+    - name: Flush handlers to reload systemd
+      ansible.builtin.meta: flush_handlers
+
+    - name: Enable ZFS services
+      ansible.builtin.systemd_service:
+        name: "{{ item }}"
+        enabled: true
+      loop:
+        - zfs-import-cache.service
+        - zfs-load-key.service
+        - zfs-mount.service
+        - zfs-import.target
+        - zfs.target
+        - zfs-zed.service
+
+    - name: Check if ZFS pool exists
+      ansible.builtin.command:
+        cmd: zpool list -H {{ zfs_zrepl.poolname }}
+      register: zfs_pool_check
+      changed_when: false
+      failed_when: false
+
+    - name: Create ZFS datasets
+      when: zfs_pool_check.rc == 0
+      block:
+        - name: Create parent data dataset
+          community.general.zfs:
+            name: "{{ zfs_zrepl.poolname }}/data"
+            state: present
+            extra_zfs_properties:
+              mountpoint: "{{ primary_user_home }}/data"
+              canmount: "on"
+
+        - name: Set ownership on parent data dataset
+          ansible.builtin.file:
+            path: "{{ primary_user_home }}/data"
+            owner: "{{ primary_user }}"
+            group: "{{ primary_user }}"
+            mode: "0755"
+            state: directory
+
+        - name: Create data child datasets
+          community.general.zfs:
+            name: "{{ zfs_zrepl.poolname }}/data/{{ item.name }}"
+            state: present
+            extra_zfs_properties:
+              canmount: "on"
+          loop: "{{ zfs_data_datasets }}"
+
+        - name: Set ownership on data child datasets
+          ansible.builtin.file:
+            path: "{{ primary_user_home }}/data/{{ item.name }}"
+            owner: "{{ primary_user }}"
+            group: "{{ primary_user }}"
+            mode: "{{ item.mode }}"
+            state: directory
+          loop: "{{ zfs_data_datasets }}"
+
+- name: Remove ZFS configuration
+  when: zfs_state == 'absent'
+  become: true
+  block:
+    - name: Disable ZFS services
+      ansible.builtin.systemd_service:
+        name: "{{ item }}"
+        enabled: false
+        state: stopped
+      loop:
+        - zfs-zed.service
+        - zfs-load-key.service
+        - zfs-import-cache.service
+        - zfs-mount.service
+        - zfs-import.target
+        - zfs.target
+      failed_when: false
+
+    - name: Remove zfs-load-key service
+      ansible.builtin.file:
+        path: /etc/systemd/system/zfs-load-key.service
+        state: absent

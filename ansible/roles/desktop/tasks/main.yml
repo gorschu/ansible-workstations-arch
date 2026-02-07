@@ -1,0 +1,20 @@
+---
+# Desktop applications
+
+- name: Install GUI applications
+  become: true
+  community.general.pacman:
+    name: "{{ desktop_gui_applications }}"
+    state: present
+
+- name: Configure Ghostty
+  ansible.builtin.import_tasks: ghostty.yml
+  tags: [ghostty]
+
+- name: Configure VS Code
+  ansible.builtin.import_tasks: vscode.yml
+  tags: [vscode]
+
+- name: Configure Beyond Compare
+  ansible.builtin.import_tasks: beyondcompare.yml
+  tags: [beyondcompare]

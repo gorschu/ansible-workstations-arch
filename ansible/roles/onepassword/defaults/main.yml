@@ -1,0 +1,6 @@
+---
+onepassword_state: present
+onepassword_aur_packages:
+  - 1password
+  - 1password-cli
+onepassword_gpg_key: "3FEF9748469ADBE15DA7CA80AC2D62742012EA22"

@@ -1,0 +1,43 @@
+---
+# Ansible playbook for Arch Linux Workstation setup
+#
+
+- name: Configure Arch Linux Workstation
+  hosts: all
+  gather_facts: true
+
+  # group_vars/all/main.yml and host_vars/ auto-loaded by Ansible
+  # vault.yml loaded by roles that need it (networking, resticprofile)
+
+  roles:
+    - role: base
+      tags: [base]
+    - role: networking
+      tags: [networking, tailscale]
+    - role: onepassword
+      tags: [onepassword, desktop]
+    - role: notebook
+      tags: [notebook, power]
+    - role: desktop
+      tags: [desktop, gui, ghostty, vscode, beyondcompare]
+    - role: gnome
+      tags: [gnome, desktop]
+    - role: kde
+      tags: [kde, desktop]
+    - role: multimedia
+      tags: [multimedia, codecs]
+    - role: hyprland
+      tags: [hyprland, wayland]
+    - role: niri
+      tags: [niri, wayland]
+    - role: dms
+      tags: [dms, wayland]
+    - role: zfs
+      tags: [zfs, zrepl, storage]
+    - role: btrbk
+      tags: [btrbk, storage, backup]
+    - role: resticprofile
+      tags: [resticprofile, backup]
+    - role: virtualization
+      tags: [virtualization, incus, docker, containers]
+# vim: set ft=yaml.ansible:

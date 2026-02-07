@@ -1,0 +1,31 @@
+---
+# Global variables for all hosts
+# Role-specific settings (including state toggles) are in role defaults
+# Override per-host in host_vars/
+
+# Use system Python to avoid mise shim issues
+ansible_python_interpreter: /usr/bin/python3
+
+timezone: Europe/Berlin
+
+# Desktop environment state (set per-host in host_vars/)
+gnome_state: absent
+kde_state: absent
+
+# Shared Wayland packages (used by hyprland + niri roles)
+wayland_common_packages:
+  - udiskie
+  - pinentry
+  - hyprpaper
+  - hypridle
+  - hyprlock
+  - mako
+  - cliphist
+  - waybar
+
+# Primary user
+primary_user: gorschu
+primary_user_uid: 1000
+primary_user_groups:
+  - wheel
+  - video

@@ -1,0 +1,42 @@
+---
+# Uninstall resticprofile
+
+- name: Unschedule all resticprofile timers
+  ansible.builtin.command:
+    cmd: resticprofile unschedule --all
+  changed_when: true
+  failed_when: false
+  register: resticprofile_unschedule_result
+
+- name: Display unschedule output
+  ansible.builtin.debug:
+    msg: "{{ resticprofile_unschedule_result.stdout_lines }}"
+
+- name: Systemd daemon-reload after unscheduling
+  ansible.builtin.systemd_service:
+    daemon_reload: true
+
+- name: Remove resticprofile directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /etc/resticprofile
+    - /var/lib/resticprofile
+
+- name: Remove resticprofile package
+  become_user: "{{ primary_user }}"
+  environment:
+    HOME: "{{ primary_user_home }}"
+  ansible.builtin.command:
+    cmd: paru -Rns --noconfirm resticprofile-bin
+  register: resticprofile_paru_remove
+  changed_when: resticprofile_paru_remove.rc == 0
+  failed_when: false
+
+- name: Remove restic and apprise packages
+  community.general.pacman:
+    name:
+      - restic
+      - apprise
+    state: absent

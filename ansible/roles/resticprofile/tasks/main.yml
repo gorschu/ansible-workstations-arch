@@ -1,0 +1,23 @@
+---
+# Resticprofile - system-level backup management
+
+- name: Load vault secrets
+  ansible.builtin.include_vars:
+    file: "{{ playbook_dir }}/vault.yml"
+  when: resticprofile_state == 'present'
+  no_log: true
+
+- name: Resticprofile setup
+  become: true
+  block:
+    - name: Install resticprofile
+      ansible.builtin.include_tasks: install.yml
+      when: resticprofile_state == 'present'
+
+    - name: Configure resticprofile
+      ansible.builtin.include_tasks: configure.yml
+      when: resticprofile_state == 'present'
+
+    - name: Uninstall resticprofile
+      ansible.builtin.include_tasks: uninstall.yml
+      when: resticprofile_state == 'absent'

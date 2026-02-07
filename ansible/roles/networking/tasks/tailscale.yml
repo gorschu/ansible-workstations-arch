@@ -1,0 +1,30 @@
+---
+# Tailscale mesh VPN configuration
+
+- name: Configure Tailscale
+  when:
+    - networking_tailscale_state == 'present'
+    - vault_tailscale_oauth_workstation is defined
+  become: true
+  block:
+    - name: Enable Tailscale with OAuth
+      ansible.builtin.include_role:
+        name: artis3n.tailscale.machine
+      vars:
+        tailscale_authkey: "{{ vault_tailscale_oauth_workstation.client_secret }}"
+        tailscale_tags:
+          - "workstation"
+        tailscale_oauth_ephemeral: false
+        tailscale_args: >-
+          --hostname={{ inventory_hostname }}
+          --accept-routes={{ 'true' if networking_tailscale_accept_routes else 'false' }}
+
+- name: Remove Tailscale
+  when: networking_tailscale_state == 'absent'
+  become: true
+  block:
+    - name: Uninstall Tailscale
+      ansible.builtin.include_role:
+        name: artis3n.tailscale.machine
+      vars:
+        state: absent

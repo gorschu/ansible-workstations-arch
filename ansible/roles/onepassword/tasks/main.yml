@@ -1,0 +1,41 @@
+---
+# 1Password installation for Arch Linux (AUR)
+
+- name: Install 1Password
+  when: onepassword_state == 'present'
+  become: true
+  block:
+    - name: Import AgileBits GPG key for AUR package verification
+      become_user: "{{ primary_user }}"
+      environment:
+        HOME: "{{ primary_user_home }}"
+      ansible.builtin.command:
+        cmd: gpg --recv-keys {{ onepassword_gpg_key }}
+      register: onepassword_gpg_result
+      changed_when: "'imported' in onepassword_gpg_result.stderr"
+      retries: 3
+      delay: 5
+      until: onepassword_gpg_result.rc == 0
+
+    - name: Install 1Password packages from AUR
+      become_user: "{{ primary_user }}"
+      environment:
+        HOME: "{{ primary_user_home }}"
+      ansible.builtin.command:
+        cmd: paru -S --noconfirm --needed {{ onepassword_aur_packages | join(' ') }}
+      register: onepassword_paru_result
+      changed_when: "'there is nothing to do' not in onepassword_paru_result.stdout"
+
+- name: Remove 1Password
+  when: onepassword_state == 'absent'
+  become: true
+  block:
+    - name: Remove 1Password packages
+      become_user: "{{ primary_user }}"
+      environment:
+        HOME: "{{ primary_user_home }}"
+      ansible.builtin.command:
+        cmd: paru -Rns --noconfirm {{ onepassword_aur_packages | join(' ') }}
+      register: onepassword_paru_remove
+      changed_when: onepassword_paru_remove.rc == 0
+      failed_when: false

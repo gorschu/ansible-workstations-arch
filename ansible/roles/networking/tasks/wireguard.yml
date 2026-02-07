@@ -1,0 +1,17 @@
+---
+# WireGuard VPN configuration
+
+- name: Configure WireGuard VPN
+  when:
+    - networking_wireguard_home_enabled | default(false)
+    - vault_networking_wg_home is defined
+  become: true
+  block:
+    - name: Deploy WireGuard connection
+      ansible.builtin.template:
+        src: wg-home.nmconnection.j2
+        dest: /etc/NetworkManager/system-connections/wg-home.nmconnection
+        mode: "0600"
+        owner: root
+        group: root
+      notify: Reload NetworkManager

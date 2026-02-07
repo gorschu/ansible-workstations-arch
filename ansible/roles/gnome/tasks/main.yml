@@ -1,0 +1,46 @@
+---
+# GNOME desktop environment
+
+- name: Install GNOME
+  when: gnome_state == 'present'
+  become: true
+  block:
+    - name: Install GNOME packages
+      community.general.pacman:
+        name: "{{ gnome_packages }}"
+        state: present
+
+    - name: Install GNOME applications
+      community.general.pacman:
+        name: "{{ gnome_applications }}"
+        state: present
+
+    - name: Enable GDM
+      ansible.builtin.systemd_service:
+        name: gdm.service
+        enabled: true
+
+- name: Remove GNOME
+  when: gnome_state == 'absent'
+  become: true
+  block:
+    - name: Disable GDM
+      ansible.builtin.systemd_service:
+        name: gdm.service
+        enabled: false
+        state: stopped
+      failed_when: false
+
+    - name: Remove GNOME applications
+      community.general.pacman:
+        name: "{{ gnome_applications }}"
+        state: absent
+
+    - name: Remove GNOME core packages
+      community.general.pacman:
+        name: "{{ gnome_removal_packages }}"
+        state: absent
+
+    - name: Remind to clean up orphaned dependencies
+      ansible.builtin.debug:
+        msg: "Run 'pacman -Qdtq | pacman -Rns -' to remove orphaned GNOME dependencies"

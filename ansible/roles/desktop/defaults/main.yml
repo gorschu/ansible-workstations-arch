@@ -1,0 +1,12 @@
+---
+desktop_gui_applications:
+  - solaar
+  - firefox
+  - kitty
+  - vicinae
+  - qutebrowser
+
+# Optional desktop apps (present/absent toggles)
+ghostty_state: absent
+vscode_state: present
+beyondcompare_state: absent

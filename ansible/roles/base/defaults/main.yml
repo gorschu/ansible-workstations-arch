@@ -1,0 +1,22 @@
+---
+# Chaotic-AUR GPG key
+base_chaotic_aur_key: "3056513887B78AEB"
+
+base_system_utils:
+  - gdisk
+  - parted
+  - dmidecode
+
+base_cli_utils:
+  - zsh
+  - neovim
+  - libarchive
+  - gnupg
+  - python-gpgme
+
+base_tuned_packages:
+  - tuned
+  - tuned-ppd
+
+# Host-specific extra packages (override in host_vars)
+base_extra_packages: []

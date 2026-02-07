@@ -1,0 +1,6 @@
+---
+- name: Include Incus tasks
+  ansible.builtin.include_tasks: incus.yml
+
+- name: Include Docker tasks
+  ansible.builtin.include_tasks: docker.yml

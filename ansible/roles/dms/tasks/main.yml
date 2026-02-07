@@ -1,0 +1,81 @@
+---
+# DankMaterialShell desktop shell (chaotic-aur)
+
+- name: Install DankMaterialShell
+  when: dms_state == 'present'
+  block:
+    - name: Install DankMaterialShell packages
+      become: true
+      community.general.pacman:
+        name: "{{ dms_packages }}"
+        state: present
+
+    - name: Deploy DMS systemd user service
+      become: true
+      ansible.builtin.copy:
+        src: dms.service
+        dest: /usr/lib/systemd/user/dms.service
+        mode: '0644'
+
+    - name: Link DMS to Hyprland session
+      when: hyprland_state | default('absent') == 'present'
+      become: true
+      become_user: "{{ primary_user }}"
+      block:
+        - name: Ensure hyprland-session.service.wants directory exists
+          ansible.builtin.file:
+            path: "{{ primary_user_home }}/.config/systemd/user/hyprland-session.service.wants"
+            state: directory
+            mode: '0755'
+
+        - name: Create DMS service symlink for Hyprland
+          ansible.builtin.file:
+            src: /usr/lib/systemd/user/dms.service
+            dest: "{{ primary_user_home }}/.config/systemd/user/hyprland-session.service.wants/dms.service"
+            state: link
+
+    - name: Link DMS to Niri session
+      when: niri_state | default('absent') == 'present'
+      become: true
+      become_user: "{{ primary_user }}"
+      block:
+        - name: Ensure niri.service.wants directory exists
+          ansible.builtin.file:
+            path: "{{ primary_user_home }}/.config/systemd/user/niri.service.wants"
+            state: directory
+            mode: '0755'
+
+        - name: Create DMS service symlink for Niri
+          ansible.builtin.file:
+            src: /usr/lib/systemd/user/dms.service
+            dest: "{{ primary_user_home }}/.config/systemd/user/niri.service.wants/dms.service"
+            state: link
+
+- name: Remove DankMaterialShell
+  when: dms_state == 'absent'
+  block:
+    - name: Remove DMS Hyprland wants symlink
+      become: true
+      become_user: "{{ primary_user }}"
+      ansible.builtin.file:
+        path: "{{ primary_user_home }}/.config/systemd/user/hyprland-session.service.wants/dms.service"
+        state: absent
+
+    - name: Remove DMS Niri wants symlink
+      become: true
+      become_user: "{{ primary_user }}"
+      ansible.builtin.file:
+        path: "{{ primary_user_home }}/.config/systemd/user/niri.service.wants/dms.service"
+        state: absent
+
+    - name: Remove DMS systemd user service
+      become: true
+      ansible.builtin.file:
+        path: /usr/lib/systemd/user/dms.service
+        state: absent
+
+    - name: Remove DankMaterialShell packages
+      become: true
+      community.general.pacman:
+        name: "{{ dms_packages }}"
+        state: absent

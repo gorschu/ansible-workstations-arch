@@ -1,0 +1,37 @@
+---
+# ZFS role defaults
+# Note: archzfs repo, kernel+ZFS module, and basic ZFS services
+# are handled by arch-install.sh. This role manages post-install only.
+
+# ZFS state - enable via host_vars
+zfs_state: absent
+
+# zrepl for ZFS snapshots/replication
+zfs_zrepl_state: absent
+
+# zrepl configuration
+# Hybrid setup: /home stays on btrfs, important data on ZFS at tank/data/*
+# Symlinked into ~/ via user-tmpfiles.d (chezmoi)
+zfs_zrepl:
+  poolname: tank
+  snapshot:
+    interval: 15m
+    prefix: zrepl_
+    datasets:
+      - data
+  external:
+    mount_path: /mnt/backup
+    dataset: backup/zrepl
+  # Pruning: keep all for 1h, then 1/hour for 24h, 1/day for 30d, 1/week for 6 months
+  prune_grid: "1x1h(keep=all) | 24x1h | 30x1d | 24x7d"
+
+# ZFS data datasets to create (under tank/data/)
+zfs_data_datasets:
+  - name: general
+    mode: "0700"
+  - name: projects
+    mode: "0700"
+  - name: media
+    mode: "0700"
+  - name: mail
+    mode: "0700"

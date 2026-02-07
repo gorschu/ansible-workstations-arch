@@ -1,0 +1,42 @@
+---
+# KDE Plasma desktop environment
+
+- name: Install KDE Plasma
+  when: kde_state == 'present'
+  become: true
+  block:
+    - name: Install Plasma packages
+      community.general.pacman:
+        name: "{{ kde_packages }}"
+        state: present
+
+    - name: Install KDE applications
+      community.general.pacman:
+        name: "{{ kde_applications }}"
+        state: present
+
+    - name: Enable SDDM
+      ansible.builtin.systemd_service:
+        name: sddm.service
+        enabled: true
+
+- name: Remove KDE Plasma
+  when: kde_state == 'absent'
+  become: true
+  block:
+    - name: Disable SDDM
+      ansible.builtin.systemd_service:
+        name: sddm.service
+        enabled: false
+        state: stopped
+      failed_when: false
+
+    - name: Remove KDE applications
+      community.general.pacman:
+        name: "{{ kde_applications }}"
+        state: absent
+
+    - name: Remove Plasma packages
+      community.general.pacman:
+        name: "{{ kde_packages }}"
+        state: absent

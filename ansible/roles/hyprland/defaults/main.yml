@@ -1,0 +1,27 @@
+---
+# Hyprland role defaults
+
+# State of Hyprland installation: present or absent
+hyprland_state: absent
+
+# Packages available in official repos
+hyprland_core_packages:
+  - hyprland
+  - uwsm
+  - xdg-desktop-portal-hyprland
+  - hyprpolkitagent
+  - hyprland-guiutils
+  - hyprcursor
+  - hyprsunset
+  - hyprpicker
+  - hyprpwcenter
+  - hyprshot
+  - satty
+  - nwg-look
+
+# Packages that need AUR
+hyprland_aur_packages:
+  - hyprqt6engine
+  - ags-hyprpanel-git
+  - hyprdim
+  - hyprnome

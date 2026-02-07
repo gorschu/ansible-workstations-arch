@@ -1,0 +1,61 @@
+# Managed by Ansible - zrepl configuration
+# https://zrepl.github.io/configuration.html
+
+global:
+  logging:
+    - type: syslog
+      level: info
+      format: human
+
+jobs:
+  # Periodic snapshots for local datasets
+  - name: snap_home
+    type: snap
+    filesystems:
+{% for dataset in zfs_zrepl.snapshot.datasets %}
+      "{{ zfs_zrepl.poolname }}/{{ dataset }}<": true
+{% endfor %}
+    snapshotting:
+      type: periodic
+      prefix: {{ zfs_zrepl.snapshot.prefix }}
+      interval: {{ zfs_zrepl.snapshot.interval }}
+      timestamp_format: iso-8601
+    pruning:
+      keep:
+        - type: grid
+          grid: {{ zfs_zrepl.prune_grid }}
+          regex: "^{{ zfs_zrepl.snapshot.prefix }}.*"
+
+  # Sink for receiving backups on external drive
+  # Mount external SSD to {{ zfs_zrepl.external.mount_path }} before pushing
+  - name: external_sink
+    type: sink
+    serve:
+      type: local
+      listener_name: external_backup
+    root_fs: {{ zfs_zrepl.external.dataset }}
+
+  # Push job for manual backup to external drive
+  # Trigger with: zrepl signal wakeup push_external
+  - name: push_external
+    type: push
+    connect:
+      type: local
+      listener_name: external_backup
+      client_identity: {{ ansible_facts['hostname'] }}
+    filesystems:
+{% for dataset in zfs_zrepl.snapshot.datasets %}
+      "{{ zfs_zrepl.poolname }}/{{ dataset }}<": true
+{% endfor %}
+    snapshotting:
+      type: manual
+    pruning:
+      keep_sender:
+        - type: not_replicated
+        - type: grid
+          grid: {{ zfs_zrepl.prune_grid }}
+          regex: "^{{ zfs_zrepl.snapshot.prefix }}.*"
+      keep_receiver:
+        - type: grid
+          grid: {{ zfs_zrepl.prune_grid }}
+          regex: "^{{ zfs_zrepl.snapshot.prefix }}.*"

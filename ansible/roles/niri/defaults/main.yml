@@ -1,0 +1,17 @@
+---
+# Niri role defaults
+
+# State of Niri installation: present or absent
+niri_state: absent
+
+# Niri-specific packages
+niri_core_packages:
+  - niri
+  - xwayland-satellite
+
+# Qt/KDE theming (installed but not removed — shared with KDE)
+niri_theming_packages:
+  - breeze5
+  - breeze
+  - plasma-integration
+  - plasma5-integration

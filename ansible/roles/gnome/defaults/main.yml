@@ -1,0 +1,16 @@
+---
+# GNOME packages (installed as a group)
+gnome_packages:
+  - gnome
+
+# GNOME extra applications/tools
+gnome_applications:
+  - gnome-tweaks
+  - gnome-shell-extensions
+
+# Key packages to remove when absent (avoids pacman group removal quirks)
+gnome_removal_packages:
+  - gnome-shell
+  - gnome-session
+  - gnome-control-center
+  - gdm

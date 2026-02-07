@@ -1,0 +1,14 @@
+---
+multimedia_packages:
+  - ffmpeg
+  - gstreamer
+  - gst-plugins-base
+  - gst-plugins-good
+  - gst-plugins-bad
+  - gst-plugins-ugly
+  - gst-libav
+
+multimedia_hw_accel_packages:
+  - libva-intel-driver
+  - libva-mesa-driver
+  - libvdpau

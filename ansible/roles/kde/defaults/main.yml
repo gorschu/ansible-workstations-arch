@@ -1,0 +1,15 @@
+---
+# KDE Plasma packages
+kde_packages:
+  - plasma-meta
+  - sddm
+
+# KDE applications
+kde_applications:
+  - dolphin
+  - konsole
+  - ark
+  - spectacle
+  - okular
+  - gwenview
+  - kate

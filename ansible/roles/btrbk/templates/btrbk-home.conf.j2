@@ -1,0 +1,16 @@
+# btrbk configuration for home subvolume
+# Hourly snapshots for user data protection
+
+timestamp_format long
+transaction_log /var/log/btrbk-home.log
+
+# Retention: hourly, keep 24h worth, then 2 dailies
+snapshot_preserve_min 1h
+snapshot_preserve 24h 2d
+
+volume /mnt/btrfs_root
+  snapshot_dir snapshots
+  snapshot_create always
+
+  subvolume home
+    snapshot_name {{ ansible_facts['hostname'] }}_home

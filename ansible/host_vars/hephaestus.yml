@@ -1,0 +1,15 @@
+---
+kde_state: present
+
+zfs_state: present
+zfs_zrepl_state: present
+btrbk_state: present
+resticprofile_state: present
+
+resticprofile_backup_sources:
+  - "/home"
+  - "/etc"
+  - "/home/gorschu/data"
+  - "/home/gorschu/data/general"
+  - "/home/gorschu/data/media"
+  - "/home/gorschu/data/projects"

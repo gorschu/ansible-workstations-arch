@@ -1,0 +1,67 @@
+---
+# NetworkManager configuration - wired and WiFi connections
+
+- name: Configure wired connections
+  become: true
+  block:
+    - name: Create wired ethernet connections
+      community.general.nmcli:
+        conn_name: "wired-{{ item }}"
+        ifname: "{{ item }}"
+        type: ethernet
+        autoconnect: true
+        autoconnect_priority: 100
+        method4: auto
+        method6: auto
+        state: present
+      loop: "{{ ansible_facts['interfaces'] | select('match', networking_wired_interface_pattern) | list }}"
+      notify: Reload NetworkManager
+
+- name: Configure WiFi connections
+  become: true
+  when: vault_networking_wifi_networks is defined
+  block:
+    - name: Create WiFi connections from vault
+      community.general.nmcli:
+        conn_name: "{{ item.0.key }}"
+        ifname: "{{ item.1 }}"
+        type: wifi
+        ssid: "{{ item.0.value.ssid }}"
+        wifi_sec:
+          key-mgmt: "{{ item.0.value.keymgmt | default('wpa-psk') }}"
+          psk: "{{ item.0.value.psk }}"
+        autoconnect: true
+        autoconnect_priority: 10
+        method4: auto
+        method6: auto
+        state: present
+      loop: >-
+        {{ vault_networking_wifi_networks | dict2items
+           | product(ansible_facts['interfaces'] | select('match', networking_wifi_interface_pattern) | list)
+           | list }}
+      no_log: true
+      notify: Reload NetworkManager
+
+    - name: Check metered status for WiFi connections
+      ansible.builtin.command:
+        cmd: nmcli -t -f connection.metered connection show "{{ item.key }}"
+      loop: "{{ vault_networking_wifi_networks | dict2items }}"
+      register: networking_wifi_metered_status
+      changed_when: false
+      failed_when: false
+      no_log: true
+
+    - name: Configure metered status for WiFi connections
+      ansible.builtin.command:
+        cmd: >-
+          nmcli connection modify "{{ item.item.key }}"
+          connection.metered {{ 'yes' if item.item.value.metered | default(false) else 'no' }}
+      loop: "{{ networking_wifi_metered_status.results }}"
+      when:
+        - item.rc == 0
+        - >-
+          (item.item.value.metered | default(false) and item.stdout != 'connection.metered:yes') or
+          (not (item.item.value.metered | default(false)) and item.stdout != 'connection.metered:no')
+      changed_when: true
+      no_log: true
+      notify: Reload NetworkManager

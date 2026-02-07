@@ -1,0 +1,27 @@
+[connection]
+id=wg-home
+type=wireguard
+interface-name=wg-home
+autoconnect=false
+
+[wireguard]
+private-key={{ vault_networking_wg_home.private_key }}
+
+[wireguard-peer.{{ vault_networking_wg_home.peer_public_key }}]
+endpoint={{ vault_networking_wg_home.endpoint }}
+preshared-key={{ vault_networking_wg_home.preshared_key }}
+allowed-ips={{ vault_networking_wg_home.allowed_ips | replace(',', ';') }};
+persistent-keepalive=25
+
+[ipv4]
+address1={{ vault_networking_wg_home.address_ipv4 }}
+method=manual
+dns={{ vault_networking_wg_home.dns_ipv4 }};
+dns-search={{ vault_networking_wg_home.dns_search }};
+
+[ipv6]
+address1={{ vault_networking_wg_home.address_ipv6 }}
+method=manual
+dns={{ vault_networking_wg_home.dns_ipv6 }};
+
+[proxy]

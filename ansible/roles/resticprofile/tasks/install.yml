@@ -1,0 +1,18 @@
+---
+# Install resticprofile and dependencies
+
+- name: Install restic and apprise from official repos
+  community.general.pacman:
+    name:
+      - restic
+      - apprise
+    state: present
+
+- name: Install resticprofile from AUR
+  become_user: "{{ primary_user }}"
+  environment:
+    HOME: "{{ primary_user_home }}"
+  ansible.builtin.command:
+    cmd: paru -S --noconfirm --needed resticprofile-bin
+  register: resticprofile_paru_result
+  changed_when: "'there is nothing to do' not in resticprofile_paru_result.stdout"
