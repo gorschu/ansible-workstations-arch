@@ -117,7 +117,7 @@ reflector --protocol https --sort rate --latest 20 --country Germany,Netherlands
 
 # --- Pacstrap ---
 pacstrap /mnt \
-  base base-devel linux linux-headers linux-firmware \
+  base base-devel linux linux-headers linux-lts linux-lts-headers linux-firmware \
   intel-ucode amd-ucode \
   cryptsetup btrfs-progs \
   dracut \
@@ -143,6 +143,13 @@ cat >/mnt/boot/loader/entries/arch.conf <<EOF
 title Arch Linux
 linux /vmlinuz-linux
 initrd /initramfs-linux.img
+options rd.luks.name=${LUKS_UUID}=${LUKS_NAME} root=/dev/mapper/${LUKS_NAME} rootflags=subvol=@ rw
+EOF
+
+cat >/mnt/boot/loader/entries/arch-lts.conf <<EOF
+title Arch Linux LTS
+linux /vmlinuz-linux-lts
+initrd /initramfs-linux-lts.img
 options rd.luks.name=${LUKS_UUID}=${LUKS_NAME} root=/dev/mapper/${LUKS_NAME} rootflags=subvol=@ rw
 EOF
 
