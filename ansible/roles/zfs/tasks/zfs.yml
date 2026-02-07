@@ -6,6 +6,16 @@
   when: zfs_state == 'present'
   become: true
   block:
+    - name: Check if hostid exists
+      ansible.builtin.stat:
+        path: /etc/hostid
+      register: zfs_hostid_check
+
+    - name: Generate host ID for ZFS
+      ansible.builtin.command:
+        cmd: zgenhostid
+      when: not zfs_hostid_check.stat.exists
+
     - name: Deploy zfs-load-key service for encrypted pools
       ansible.builtin.copy:
         src: zfs-load-key.service

@@ -1,6 +1,9 @@
 #!/bin/bash
 set -euo pipefail
 
+# ZFS DKMS installation for Arch Linux
+# Services and configuration are handled by ansible zfs role
+
 # --- Must run as root ---
 if [[ $EUID -ne 0 ]]; then
   echo "Run as root"
@@ -9,12 +12,11 @@ fi
 
 ARCHZFS_KEY=3A9917BF0DED5C13F69AC68FABEC0A1208037BE9
 
-# --- Add archzfs repo (for zfs-dkms + zfs-utils) ---
+# --- Add archzfs repo ---
 if grep -q '^\[archzfs\]' /etc/pacman.conf; then
   echo "archzfs repo already in pacman.conf"
 else
   echo "Adding archzfs repo to pacman.conf..."
-  # Append at end (no need to be before [core] with DKMS)
   cat >>/etc/pacman.conf <<REPO
 
 [archzfs]
@@ -32,14 +34,6 @@ pacman -Sy
 echo "Installing ZFS DKMS (this will compile modules)..."
 pacman -S --noconfirm --needed zfs-dkms zfs-utils
 
-# --- Enable ZFS services ---
-echo "Enabling ZFS services..."
-systemctl enable zfs-import-cache.service
-systemctl enable zfs-import.target
-systemctl enable zfs-mount.service
-systemctl enable zfs.target
-
 echo ""
-echo "ZFS setup complete."
-echo "DKMS compiled modules for all installed kernels."
-echo "Reboot to use ZFS."
+echo "ZFS DKMS installed."
+echo "Run ansible zfs role to configure services and datasets."
