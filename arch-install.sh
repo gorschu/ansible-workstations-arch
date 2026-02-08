@@ -6,6 +6,20 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 # --- Dependencies ---
 pacman -Sy --noconfirm --needed gum &>/dev/null
 
+# --- CachyOS repos (on live ISO, so pacstrap uses them) ---
+echo "Setting up CachyOS repositories..."
+curl -sL https://mirror.cachyos.org/cachyos-repo.tar.xz -o /tmp/cachyos-repo.tar.xz
+tar xJf /tmp/cachyos-repo.tar.xz -C /tmp
+# Patch out the final pacman -Syu (we don't need to upgrade the live ISO, really)
+sed -i 's/pacman -Syu/#pacman -Syu/' /tmp/cachyos-repo/cachyos-repo.sh
+(cd /tmp/cachyos-repo && ./cachyos-repo.sh)
+rm -rf /tmp/cachyos-repo /tmp/cachyos-repo.tar.xz
+
+# Rank mirrors before pacstrap
+pacman -Sy --noconfirm cachyos-rate-mirrors
+echo "Ranking mirrors..."
+cachyos-rate-mirrors
+
 # --- Usage ---
 if [[ $# -lt 2 ]]; then
   echo "Usage: $0 <hostname> <disk>"
@@ -111,19 +125,20 @@ mkdir -p /mnt/{home,boot}
 mount -o subvol=@home /dev/mapper/"$LUKS_NAME" /mnt/home
 mount "$(part "$DISK" 1)" /mnt/boot
 
-# --- Rank mirrors ---
-echo "Ranking Arch mirrors..."
-reflector --protocol https --sort rate --latest 20 --country Germany,Netherlands,Sweden,Finland,Denmark,Austria,Switzerland --save /etc/pacman.d/mirrorlist
-
-# --- Pacstrap ---
+# --- Pacstrap (from CachyOS repos) ---
 pacstrap /mnt \
-  base base-devel linux linux-headers linux-lts linux-lts-headers linux-firmware \
+  base base-devel linux-firmware \
+  cachyos-keyring cachyos-mirrorlist cachyos-v3-mirrorlist cachyos-v4-mirrorlist \
+  linux-cachyos linux-cachyos-headers \
+  linux-cachyos-lts-lto linux-cachyos-lts-lto-headers \
+  linux-cachyos-zfs linux-cachyos-lts-lto-zfs zfs-utils \
   intel-ucode amd-ucode \
   cryptsetup btrfs-progs \
   dracut \
   networkmanager iwd wireless-regdb openssh \
   terminus-font \
   python \
+  cachyos-settings cachyos-rate-mirrors \
   sudo neovim git
 
 # --- Fstab ---
@@ -140,16 +155,16 @@ LUKS_UUID=$(blkid -s UUID -o value "$(part "$DISK" 2)")
 mkdir -p /mnt/boot/loader/entries
 
 cat >/mnt/boot/loader/entries/arch.conf <<EOF
-title Arch Linux
-linux /vmlinuz-linux
-initrd /initramfs-linux.img
+title Arch Linux (CachyOS)
+linux /vmlinuz-linux-cachyos
+initrd /initramfs-linux-cachyos.img
 options rd.luks.name=${LUKS_UUID}=${LUKS_NAME} root=/dev/mapper/${LUKS_NAME} rootflags=subvol=@ rw
 EOF
 
 cat >/mnt/boot/loader/entries/arch-lts.conf <<EOF
-title Arch Linux LTS
-linux /vmlinuz-linux-lts
-initrd /initramfs-linux-lts.img
+title Arch Linux LTS (CachyOS)
+linux /vmlinuz-linux-cachyos-lts-lto
+initrd /initramfs-linux-cachyos-lts-lto.img
 options rd.luks.name=${LUKS_UUID}=${LUKS_NAME} root=/dev/mapper/${LUKS_NAME} rootflags=subvol=@ rw
 EOF
 
@@ -201,6 +216,10 @@ echo "root:${ROOT_PASSWORD}" | chpasswd
 # Sudo
 sed -i 's/^# %wheel ALL=(ALL:ALL) ALL/%wheel ALL=(ALL:ALL) ALL/' /etc/sudoers
 
+# Rank mirrors
+echo "Ranking mirrors..."
+cachyos-rate-mirrors
+
 # Bootloader
 bootctl install
 
@@ -224,10 +243,10 @@ ln -s /run/systemd/resolve/stub-resolv.conf /mnt/etc/resolv.conf
 
 echo ""
 gum style --border rounded --padding "0 1" --border-foreground 2 \
-  "Done. Verify /mnt/boot/ has vmlinuz-linux + initramfs-linux.img, then:" \
+  "Done. Verify /mnt/boot/ has vmlinuz-linux-cachyos + initramfs-linux-cachyos.img, then:" \
   "" \
   "  umount -R /mnt" \
   "  cryptsetup close ${LUKS_NAME}" \
   "  reboot" \
   "" \
-  "After reboot, run zfs-setup.sh to add ZFS support."
+  "ZFS modules installed. Run ansible zfs role to configure services and datasets."

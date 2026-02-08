@@ -1,6 +1,6 @@
 ---
 # ZFS post-install - services, datasets, and permissions
-# archzfs repo + kernel module are handled by arch-install.sh
+# CachyOS kernel + ZFS module are handled by arch-install.sh
 
 - name: Configure ZFS
   when: zfs_state == 'present'
