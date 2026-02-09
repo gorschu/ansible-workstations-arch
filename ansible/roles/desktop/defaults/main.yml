@@ -6,6 +6,9 @@ desktop_gui_applications:
   - vicinae
   - qutebrowser
 
+desktop_support_applications:
+  - wl-clipboard
+
 # Optional desktop apps (present/absent toggles)
 ghostty_state: absent
 vscode_state: present

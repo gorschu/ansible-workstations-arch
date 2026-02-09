@@ -7,6 +7,12 @@
     name: "{{ desktop_gui_applications }}"
     state: present
 
+- name: Install Support applications
+  become: true
+  community.general.pacman:
+    name: "{{ desktop_support_applications }}"
+    state: present
+
 - name: Configure Ghostty
   ansible.builtin.import_tasks: ghostty.yml
   tags: [ghostty]

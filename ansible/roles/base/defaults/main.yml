@@ -8,6 +8,7 @@ base_system_utils:
   - dmidecode
 
 base_cli_utils:
+  - pkgfile
   - zsh
   - neovim
   - libarchive

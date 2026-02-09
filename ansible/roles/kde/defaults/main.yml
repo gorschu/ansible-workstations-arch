@@ -13,3 +13,6 @@ kde_applications:
   - okular
   - gwenview
   - kate
+  - kwallet
+  - kwallet-pam
+  - kwalletmanager
