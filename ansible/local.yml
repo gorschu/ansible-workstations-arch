@@ -34,6 +34,8 @@
       tags: [dms, wayland]
     - role: zfs
       tags: [zfs, zrepl, storage]
+    - role: storage_btrfs_data
+      tags: [storage, btrfs, data]
     - role: btrbk
       tags: [btrbk, storage, backup]
     - role: resticprofile

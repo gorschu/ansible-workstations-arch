@@ -1,0 +1,14 @@
+[Unit]
+Description=Persistent data mount for {{ primary_user }}
+After=local-fs-pre.target
+Before=local-fs.target
+
+[Mount]
+What={{ storage_btrfs_data_device }}
+Where={{ storage_btrfs_data_mountpoint }}
+Type=btrfs
+Options={{ storage_btrfs_data_mount_options }}
+DirectoryMode=0700
+
+[Install]
+WantedBy=local-fs.target

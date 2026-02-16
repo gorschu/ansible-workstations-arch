@@ -1,0 +1,99 @@
+---
+- name: Configure Btrfs data mounts
+  when: storage_btrfs_data_state == 'present'
+  become: true
+  block:
+    - name: Ensure encrypted data mapper exists
+      ansible.builtin.stat:
+        path: "{{ storage_btrfs_data_device }}"
+      register: storage_btrfs_data_mapper
+
+    - name: Fail if encrypted data mapper is missing
+      ansible.builtin.fail:
+        msg: >-
+          {{ storage_btrfs_data_device }} is missing. Ensure arch-install configured
+          part9 as LUKS2 and boot unlocks it as cryptdata.
+      when: not storage_btrfs_data_mapper.stat.exists
+
+    - name: Ensure primary data mount point exists
+      ansible.builtin.file:
+        path: "{{ storage_btrfs_data_mountpoint }}"
+        state: directory
+        owner: "{{ primary_user }}"
+        group: "{{ primary_user }}"
+        mode: "0700"
+
+    - name: Ensure data top-level mount point exists
+      ansible.builtin.file:
+        path: "{{ storage_btrfs_data_top_mountpoint }}"
+        state: directory
+        mode: "0700"
+
+    - name: Deploy primary data mount unit
+      ansible.builtin.template:
+        src: home-primary-user-data.mount.j2
+        dest: "/etc/systemd/system/home-{{ primary_user }}-data.mount"
+        mode: "0644"
+      notify: Systemd daemon-reload
+
+    - name: Deploy data top-level mount unit
+      ansible.builtin.template:
+        src: mnt-btrfs-data.mount.j2
+        dest: /etc/systemd/system/mnt-btrfs_data.mount
+        mode: "0644"
+      notify: Systemd daemon-reload
+
+    - name: Flush handlers to reload systemd
+      ansible.builtin.meta: flush_handlers
+
+    - name: Enable and start primary data mount
+      ansible.builtin.systemd_service:
+        name: "home-{{ primary_user }}-data.mount"
+        enabled: true
+        state: started
+
+    - name: Enable and start data top-level mount
+      ansible.builtin.systemd_service:
+        name: mnt-btrfs_data.mount
+        enabled: true
+        state: started
+
+    - name: Ensure primary data root ownership and mode
+      ansible.builtin.file:
+        path: "{{ storage_btrfs_data_mountpoint }}"
+        state: directory
+        owner: "{{ primary_user }}"
+        group: "{{ primary_user }}"
+        mode: "0700"
+
+    - name: Ensure common data directories exist
+      ansible.builtin.file:
+        path: "{{ storage_btrfs_data_mountpoint }}/{{ item.path }}"
+        state: directory
+        owner: "{{ primary_user }}"
+        group: "{{ primary_user }}"
+        mode: "{{ item.mode }}"
+      loop: "{{ storage_btrfs_data_directories }}"
+
+- name: Remove Btrfs data mounts
+  when: storage_btrfs_data_state == 'absent'
+  become: true
+  block:
+    - name: Stop and disable data mount units
+      ansible.builtin.systemd_service:
+        name: "{{ item }}"
+        enabled: false
+        state: stopped
+      loop:
+        - "home-{{ primary_user }}-data.mount"
+        - mnt-btrfs_data.mount
+      failed_when: false
+
+    - name: Remove data mount units
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - "/etc/systemd/system/home-{{ primary_user }}-data.mount"
+        - /etc/systemd/system/mnt-btrfs_data.mount
+      notify: Systemd daemon-reload
