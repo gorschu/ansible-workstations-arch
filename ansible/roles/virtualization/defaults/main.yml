@@ -1,6 +1,6 @@
 ---
 # Incus configuration
-virtualization_incus_state: present  # present or absent
+virtualization_incus_state: absent  # present or absent
 
 # Packages required for Incus
 virtualization_incus_packages:

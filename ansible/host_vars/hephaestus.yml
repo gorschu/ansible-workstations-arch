@@ -1,8 +1,8 @@
 ---
 kde_state: present
 
-zfs_state: present
-zfs_zrepl_state: present
+zfs_state: absent
+zfs_zrepl_state: absent
 btrbk_state: present
 resticprofile_state: present
 
