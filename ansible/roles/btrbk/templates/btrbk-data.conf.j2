@@ -1,0 +1,16 @@
+# btrbk configuration for persistent data subvolume
+# Important data retention policy
+
+timestamp_format long
+transaction_log /var/log/btrbk-data.log
+
+# Retention: hourly for 2 days, daily for 30 days, 2 weekly, 1 monthly
+snapshot_preserve_min 2h
+snapshot_preserve 48h 30d 2w 1m
+
+volume /mnt/btrfs_data
+  snapshot_dir snapshots
+  snapshot_create always
+
+  subvolume data
+    snapshot_name {{ ansible_facts['hostname'] }}_data

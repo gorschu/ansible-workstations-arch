@@ -4,9 +4,9 @@
 timestamp_format long
 transaction_log /var/log/btrbk-root.log
 
-# Retention: every 4 hours, keep 2 dailies
+# Retention: short rollback window for system volume
 snapshot_preserve_min 4h
-snapshot_preserve 2d
+snapshot_preserve 24h 7d
 
 volume /mnt/btrfs_root
   snapshot_dir snapshots

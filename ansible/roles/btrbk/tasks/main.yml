@@ -1,6 +1,5 @@
 ---
-# btrbk - btrfs snapshot management for root and home
-# Important data lives on ZFS; this is a safety net
+# btrbk - btrfs snapshot management for root, home, and persistent data
 
 - name: Install btrbk
   when: btrbk_state == 'present'
@@ -48,19 +47,30 @@
           ansible.builtin.file:
             path: /mnt/btrfs_root
             state: directory
-            mode: "0755"
-
-        - name: Create snapshots directory
-          ansible.builtin.file:
-            path: /mnt/btrfs_root/snapshots
-            state: directory
-            mode: "0755"
+            mode: "0700"
 
         - name: Enable and start btrfs_root mount
           ansible.builtin.systemd_service:
             name: mnt-btrfs_root.mount
             state: started
             enabled: true
+
+        - name: Ensure data top-level mount is active
+          ansible.builtin.systemd_service:
+            name: mnt-btrfs_data.mount
+            state: started
+
+        - name: Create root snapshots directory
+          ansible.builtin.file:
+            path: /mnt/btrfs_root/snapshots
+            state: directory
+            mode: "0700"
+
+        - name: Create data snapshots directory
+          ansible.builtin.file:
+            path: /mnt/btrfs_data/snapshots
+            state: directory
+            mode: "0700"
 
         - name: Create btrbk configuration directory
           ansible.builtin.file:
@@ -76,6 +86,7 @@
           loop:
             - {src: btrbk-root.conf.j2, dest: btrbk-root.conf}
             - {src: btrbk-home.conf.j2, dest: btrbk-home.conf}
+            - {src: btrbk-data.conf.j2, dest: btrbk-data.conf}
 
         - name: Deploy btrbk timers
           ansible.builtin.copy:
@@ -85,6 +96,7 @@
           loop:
             - btrbk-root.timer
             - btrbk-home.timer
+            - btrbk-data.timer
           notify: Systemd daemon-reload
 
         - name: Deploy btrbk services
@@ -95,6 +107,7 @@
           loop:
             - btrbk-root.service
             - btrbk-home.service
+            - btrbk-data.service
           notify: Systemd daemon-reload
 
         - name: Flush handlers to reload systemd
@@ -108,6 +121,7 @@
           loop:
             - btrbk-root.timer
             - btrbk-home.timer
+            - btrbk-data.timer
 
         - name: Remove old single btrbk config if present
           ansible.builtin.file:
@@ -126,6 +140,7 @@
       loop:
         - btrbk-root.timer
         - btrbk-home.timer
+        - btrbk-data.timer
       failed_when: false
 
     - name: Stop and disable btrfs_root mount
@@ -144,6 +159,8 @@
         - /etc/systemd/system/btrbk-root.service
         - /etc/systemd/system/btrbk-home.timer
         - /etc/systemd/system/btrbk-home.service
+        - /etc/systemd/system/btrbk-data.timer
+        - /etc/systemd/system/btrbk-data.service
         - /etc/systemd/system/mnt-btrfs_root.mount
       notify: Systemd daemon-reload
 
@@ -154,6 +171,7 @@
       loop:
         - /etc/btrbk/btrbk-root.conf
         - /etc/btrbk/btrbk-home.conf
+        - /etc/btrbk/btrbk-data.conf
 
     - name: Unmask shipped btrbk services
       ansible.builtin.systemd_service:

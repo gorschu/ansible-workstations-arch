@@ -1,0 +1,10 @@
+[Unit]
+Description=btrbk data subvolume snapshot timer
+
+[Timer]
+OnCalendar=hourly
+Persistent=true
+RandomizedDelaySec=5min
+
+[Install]
+WantedBy=timers.target
