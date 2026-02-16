@@ -47,53 +47,106 @@ part() {
 # --- Config ---
 HOSTNAME=$1
 DISK=$2
-LUKS_NAME=cryptroot
+ROOT_LUKS_NAME=cryptroot
+DATA_LUKS_NAME=cryptdata
 USERNAME=gorschu
 TIMEZONE=Europe/Berlin
-BTRFS_SIZE=20G
+ROOTFS_SIZE=20G
+DATA_PART_NUM=9
+ROOT_SUBVOL=root
+HOME_SUBVOL=home
+DATA_SUBVOL=data
 
-# --- Detect ZFS partition 9 ---
-if sgdisk -p "$DISK" 2>/dev/null | awk '{print $1}' | grep -qx '9'; then
-  ZFS_PRESERVE=true
-  ZFS_START=$(sgdisk -i 9 "$DISK" | awk '/^First sector:/{print $3}')
-  if [[ -z "$ZFS_START" || "$ZFS_START" -lt 1 ]]; then
-    echo "ERROR: could not determine start sector of ZFS partition 9"
+ask_secret() {
+  local label=$1
+  local pw pw_confirm
+  while true; do
+    pw=$(gum input --password --header "Password for ${label}")
+    pw_confirm=$(gum input --password --header "Confirm password for ${label}")
+    [[ "$pw" == "$pw_confirm" ]] && break
+    gum style --foreground 1 "Passwords don't match — try again."
+  done
+  echo "$pw"
+}
+
+# --- Detect persistent data partition 9 ---
+if sgdisk -p "$DISK" 2>/dev/null | awk '{print $1}' | grep -qx "${DATA_PART_NUM}"; then
+  DATA_PRESERVE=true
+  DATA_START=$(sgdisk -i "${DATA_PART_NUM}" "$DISK" | awk '/^First sector:/{print $3}')
+  if [[ -z "$DATA_START" || "$DATA_START" -lt 1 ]]; then
+    echo "ERROR: could not determine start sector of data partition ${DATA_PART_NUM}"
     exit 1
   fi
-  echo "ZFS partition 9 found on ${DISK} — preserving (starts at sector ${ZFS_START})"
+  echo "Data partition ${DATA_PART_NUM} found on ${DISK} — preserving (starts at sector ${DATA_START})"
 else
-  ZFS_PRESERVE=false
-  echo "No ZFS partition on ${DISK} — full wipe"
+  DATA_PRESERVE=false
+  echo "No data partition ${DATA_PART_NUM} on ${DISK} — it will be created as encrypted btrfs"
 fi
 
-if [[ "$ZFS_PRESERVE" == true ]]; then
-  BTRFS_LABEL="fill to ZFS"
+if [[ "$DATA_PRESERVE" == true ]]; then
+  ROOT_LABEL="fill to preserved data partition"
 else
-  BTRFS_LABEL="${BTRFS_SIZE}"
+  ROOT_LABEL="${ROOTFS_SIZE}"
 fi
 LAYOUT="$(part "$DISK" 1) - 1G EFI (/boot)
-$(part "$DISK" 2) - ${BTRFS_LABEL} LUKS2 + btrfs (@ @home)
-$([[ "$ZFS_PRESERVE" == true ]] && echo "$(part "$DISK" 9) - ZFS (preserved)" || echo "rest free for ZFS")"
+$(part "$DISK" 2) - ${ROOT_LABEL} LUKS2 + btrfs (${ROOT_SUBVOL} ${HOME_SUBVOL})
+$([[ "$DATA_PRESERVE" == true ]] && echo "$(part "$DISK" ${DATA_PART_NUM}) - LUKS2 + btrfs (${DATA_SUBVOL}) (preserved)" || echo "$(part "$DISK" ${DATA_PART_NUM}) - LUKS2 + btrfs (${DATA_SUBVOL}) (created from remaining space)")"
 
 echo ""
 gum style --border rounded --padding "0 1" --border-foreground 4 "$LAYOUT"
 echo ""
 gum confirm "Wipe and install?" || exit 1
 
+# Ask once and reuse for root + data setup.
+echo ""
+echo "Setting up LUKS passphrase for root and persistent data..."
+LUKS_PASSWORD=$(ask_secret "disk encryption (shared root + data)")
+DATA_PART=$(part "$DISK" "${DATA_PART_NUM}")
+
+# Validate preserved part9 before any destructive partitioning.
+if [[ "$DATA_PRESERVE" == true ]]; then
+  DATA_PART_TYPE=$(blkid -s TYPE -o value "$DATA_PART" || true)
+  if [[ "$DATA_PART_TYPE" != "crypto_LUKS" ]]; then
+    echo "ERROR: preserved ${DATA_PART} is not LUKS (found: ${DATA_PART_TYPE:-unknown})"
+    echo "Aborting install before partitioning to protect preserved data partition."
+    exit 1
+  fi
+
+  if cryptsetup status "$DATA_LUKS_NAME" >/dev/null 2>&1; then
+    cryptsetup close "$DATA_LUKS_NAME" || true
+  fi
+
+  if ! printf '%s' "$LUKS_PASSWORD" | cryptsetup open --key-file - "$DATA_PART" "$DATA_LUKS_NAME"; then
+    echo "ERROR: could not unlock preserved ${DATA_PART} as ${DATA_LUKS_NAME}"
+    echo "Use the existing data LUKS passphrase (root and data should match)."
+    exit 1
+  fi
+
+  DATA_FS_TYPE=$(blkid -s TYPE -o value /dev/mapper/"$DATA_LUKS_NAME" || true)
+  cryptsetup close "$DATA_LUKS_NAME" || true
+  if [[ "$DATA_FS_TYPE" != "btrfs" ]]; then
+    echo "ERROR: preserved ${DATA_PART} is LUKS, but inner filesystem is not btrfs (found: ${DATA_FS_TYPE:-unknown})"
+    echo "Aborting install before partitioning to protect preserved data partition."
+    exit 1
+  fi
+fi
+
 # --- Partition ---
-if [[ "$ZFS_PRESERVE" == true ]]; then
-  for part in $(sgdisk -p "$DISK" | awk '/^ *[0-9]/ && $1 != 9 {print $1}'); do
+if [[ "$DATA_PRESERVE" == true ]]; then
+  for part in $(sgdisk -p "$DISK" | awk -v keep="${DATA_PART_NUM}" '/^ *[0-9]/ && $1 != keep {print $1}'); do
     sgdisk -d "$part" "$DISK"
   done
 else
   sgdisk -Z "$DISK"
 fi
 sgdisk -n 1:0:+1G -t 1:ef00 -c 1:EFI "$DISK"
-if [[ "$ZFS_PRESERVE" == true ]]; then
-  sgdisk -n "2:0:$((ZFS_START - 1))" -t 2:8309 -c 2:cryptroot "$DISK"
+if [[ "$DATA_PRESERVE" == true ]]; then
+  sgdisk -n "2:0:$((DATA_START - 1))" -t 2:8309 -c 2:cryptroot "$DISK"
 else
-  sgdisk -n 2:0:+${BTRFS_SIZE} -t 2:8309 -c 2:cryptroot "$DISK"
+  sgdisk -n 2:0:+${ROOTFS_SIZE} -t 2:8309 -c 2:cryptroot "$DISK"
+  sgdisk -n "${DATA_PART_NUM}:0:0" -t "${DATA_PART_NUM}:8309" -c "${DATA_PART_NUM}:cryptdata" "$DISK"
 fi
+sgdisk -c "${DATA_PART_NUM}:cryptdata" "$DISK"
 partprobe "$DISK"
 sleep 1
 
@@ -107,22 +160,50 @@ done < <(efibootmgr 2>/dev/null | grep -oP 'Boot\K[0-9A-F]{4}' || true)
 mkfs.fat -F32 "$(part "$DISK" 1)"
 
 echo ""
-echo "Setting up LUKS..."
-cryptsetup luksFormat --type luks2 "$(part "$DISK" 2)"
-cryptsetup open "$(part "$DISK" 2)" "$LUKS_NAME"
+echo "Configuring LUKS and btrfs..."
 
-mkfs.btrfs /dev/mapper/"$LUKS_NAME"
+printf '%s' "$LUKS_PASSWORD" | cryptsetup luksFormat --type luks2 --batch-mode --key-file - "$(part "$DISK" 2)"
+printf '%s' "$LUKS_PASSWORD" | cryptsetup open --key-file - "$(part "$DISK" 2)" "$ROOT_LUKS_NAME"
+mkfs.btrfs /dev/mapper/"$ROOT_LUKS_NAME"
 
 # --- Btrfs subvols ---
-mount /dev/mapper/"$LUKS_NAME" /mnt
-btrfs subvolume create /mnt/@
-btrfs subvolume create /mnt/@home
+mount /dev/mapper/"$ROOT_LUKS_NAME" /mnt
+btrfs subvolume create "/mnt/${ROOT_SUBVOL}"
+btrfs subvolume create "/mnt/${HOME_SUBVOL}"
 umount /mnt
 
+# --- Persistent data partition (part9) ---
+if [[ "$DATA_PRESERVE" != true ]]; then
+  printf '%s' "$LUKS_PASSWORD" | cryptsetup luksFormat --type luks2 --batch-mode --key-file - "$DATA_PART"
+fi
+
+if ! printf '%s' "$LUKS_PASSWORD" | cryptsetup open --key-file - "$DATA_PART" "$DATA_LUKS_NAME"; then
+  echo "ERROR: could not unlock ${DATA_PART} as ${DATA_LUKS_NAME}"
+  echo "Ensure root/data use the same LUKS passphrase."
+  exit 1
+fi
+
+DATA_MAPPER_DEV=/dev/mapper/"$DATA_LUKS_NAME"
+
+if [[ "$DATA_PRESERVE" != true ]]; then
+  mkfs.btrfs "$DATA_MAPPER_DEV"
+fi
+
+mkdir -p /mnt/data_setup
+mount "$DATA_MAPPER_DEV" /mnt/data_setup
+if ! btrfs subvolume list /mnt/data_setup | awk '{print $NF}' | grep -qx "${DATA_SUBVOL}"; then
+  btrfs subvolume create "/mnt/data_setup/${DATA_SUBVOL}"
+fi
+umount /mnt/data_setup
+rmdir /mnt/data_setup
+cryptsetup close "$DATA_LUKS_NAME"
+unset LUKS_PASSWORD
+
 # --- Mount (ESP at /boot for systemd-boot) ---
-mount -o subvol=@ /dev/mapper/"$LUKS_NAME" /mnt
+mount -o subvol="${ROOT_SUBVOL}" /dev/mapper/"$ROOT_LUKS_NAME" /mnt
 mkdir -p /mnt/{home,boot}
-mount -o subvol=@home /dev/mapper/"$LUKS_NAME" /mnt/home
+mount -o subvol="${HOME_SUBVOL}" /dev/mapper/"$ROOT_LUKS_NAME" /mnt/home
+mkdir -p "/mnt/home/${USERNAME}/data"
 mount "$(part "$DISK" 1)" /mnt/boot
 
 # --- Pacstrap (from CachyOS repos) ---
@@ -151,8 +232,9 @@ cp /etc/pacman.conf /mnt/etc/pacman.conf
 # --- Static configs (rootfs overlay) ---
 cp -r "$SCRIPT_DIR/rootfs/." /mnt/
 
-# --- LUKS UUID for boot entries ---
-LUKS_UUID=$(blkid -s UUID -o value "$(part "$DISK" 2)")
+# --- LUKS UUIDs for boot entries ---
+ROOT_LUKS_UUID=$(blkid -s UUID -o value "$(part "$DISK" 2)")
+DATA_LUKS_UUID=$(blkid -s UUID -o value "$DATA_PART")
 
 # --- systemd-boot entries ---
 mkdir -p /mnt/boot/loader/entries
@@ -161,34 +243,23 @@ cat >/mnt/boot/loader/entries/arch.conf <<EOF
 title Arch Linux (CachyOS)
 linux /vmlinuz-linux-cachyos
 initrd /initramfs-linux-cachyos.img
-options rd.luks.name=${LUKS_UUID}=${LUKS_NAME} root=/dev/mapper/${LUKS_NAME} rootflags=subvol=@ rw
+options rd.luks.name=${ROOT_LUKS_UUID}=${ROOT_LUKS_NAME} rd.luks.name=${DATA_LUKS_UUID}=${DATA_LUKS_NAME} root=/dev/mapper/${ROOT_LUKS_NAME} rootflags=subvol=${ROOT_SUBVOL} rw
 EOF
 
 cat >/mnt/boot/loader/entries/arch-lts.conf <<EOF
 title Arch Linux LTS (CachyOS)
 linux /vmlinuz-linux-cachyos-lts-lto
 initrd /initramfs-linux-cachyos-lts-lto.img
-options rd.luks.name=${LUKS_UUID}=${LUKS_NAME} root=/dev/mapper/${LUKS_NAME} rootflags=subvol=@ rw
+options rd.luks.name=${ROOT_LUKS_UUID}=${ROOT_LUKS_NAME} rd.luks.name=${DATA_LUKS_UUID}=${DATA_LUKS_NAME} root=/dev/mapper/${ROOT_LUKS_NAME} rootflags=subvol=${ROOT_SUBVOL} rw
 EOF
 
 # --- Passwords (before chroot — passwd needs a terminal) ---
-ask_password() {
-  local label=$1
-  while true; do
-    pw=$(gum input --password --header "Password for ${label}")
-    pw_confirm=$(gum input --password --header "Confirm password for ${label}")
-    [[ "$pw" == "$pw_confirm" ]] && break
-    gum style --foreground 1 "Passwords don't match — try again."
-  done
-  echo "$pw"
-}
-
-USER_PASSWORD=$(ask_password "$USERNAME")
+USER_PASSWORD=$(ask_secret "$USERNAME")
 
 if gum confirm "Use the same password for root?"; then
   ROOT_PASSWORD="$USER_PASSWORD"
 else
-  ROOT_PASSWORD=$(ask_password "root")
+  ROOT_PASSWORD=$(ask_secret "root")
 fi
 
 # --- Chroot ---
@@ -252,7 +323,7 @@ gum style --border rounded --padding "0 1" --border-foreground 2 \
   "Done. Verify /mnt/boot/ has vmlinuz-linux-cachyos + initramfs-linux-cachyos.img, then:" \
   "" \
   "  umount -R /mnt" \
-  "  cryptsetup close ${LUKS_NAME}" \
+  "  cryptsetup close ${ROOT_LUKS_NAME}" \
   "  reboot" \
   "" \
-  "ZFS modules installed. Run ansible zfs role to configure services and datasets."
+  "ZFS kernel modules remain installed, but default workstation data uses encrypted btrfs on part9."
