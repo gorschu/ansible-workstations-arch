@@ -4,3 +4,4 @@ collections:
     version: ">=11.0.0"
   - name: ansible.posix
   - name: artis3n.tailscale
+  - name: community.libvirt

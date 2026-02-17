@@ -1,0 +1,72 @@
+---
+- name: Configure libvirt
+  block:
+    - name: Install libvirt/QEMU packages
+      community.general.pacman:
+        name: "{{ virtualization_libvirt_packages }}"
+        state: present
+
+    - name: Add users to libvirt group
+      ansible.builtin.user:
+        name: "{{ item }}"
+        groups: libvirt
+        append: true
+      loop: "{{ virtualization_libvirt_users }}"
+      when: virtualization_libvirt_users | length > 0
+
+    - name: Create libvirt storage pool directory
+      ansible.builtin.file:
+        path: "{{ virtualization_libvirt_storage_pool_path }}"
+        state: directory
+        mode: "0711"
+        owner: root
+        group: root
+      when: virtualization_libvirt_storage_pool_enabled
+
+    - name: Define default storage pool
+      community.libvirt.virt_pool:
+        command: define
+        name: default
+        xml: |
+          <pool type='dir'>
+            <name>default</name>
+            <target>
+              <path>{{ virtualization_libvirt_storage_pool_path }}</path>
+            </target>
+          </pool>
+      when: virtualization_libvirt_storage_pool_enabled
+
+    - name: Set default storage pool to autostart
+      community.libvirt.virt_pool:
+        name: default
+        autostart: true
+        state: active
+      when: virtualization_libvirt_storage_pool_enabled
+  become: true
+  when: virtualization_libvirt_state == 'present'
+
+- name: Ensure libvirt group exists
+  become: true
+  ansible.builtin.group:
+    name: libvirt
+    state: "{{ virtualization_libvirt_state }}"
+
+- name: Manage libvirt sockets
+  become: true
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    enabled: "{{ virtualization_libvirt_state == 'present' }}"
+    state: "{{ 'started' if virtualization_libvirt_state == 'present' else 'stopped' }}"
+  loop:
+    - libvirtd.socket
+    - virtlogd.socket
+  when: virtualization_libvirt_state in ['present', 'absent']
+
+- name: Remove libvirt
+  block:
+    - name: Remove libvirt packages
+      community.general.pacman:
+        name: "{{ virtualization_libvirt_packages }}"
+        state: absent
+  become: true
+  when: virtualization_libvirt_state == 'absent'
