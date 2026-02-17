@@ -3,6 +3,32 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
+usage() {
+  echo "Usage: $0 <hostname> <disk>"
+  echo "  e.g. $0 artemis /dev/disk/by-id/ata-Samsung_SSD_870_EVO_1TB_xxx"
+}
+
+# --- Required args (fail fast before doing any setup) ---
+if [[ $# -ne 2 ]]; then
+  usage
+  exit 1
+fi
+
+HOSTNAME=$1
+DISK=$2
+
+if [[ -z "$HOSTNAME" ]]; then
+  echo "ERROR: hostname is required."
+  usage
+  exit 1
+fi
+
+if [[ -z "$DISK" || ! -b "$DISK" ]]; then
+  echo "ERROR: disk must be an existing block device: '$DISK'"
+  usage
+  exit 1
+fi
+
 # --- Dependencies ---
 pacman -Sy --noconfirm --needed gum &>/dev/null
 
@@ -19,13 +45,6 @@ rm -rf /tmp/cachyos-repo /tmp/cachyos-repo.tar.xz
 pacman -Sy --noconfirm cachyos-rate-mirrors
 echo "Ranking mirrors..."
 cachyos-rate-mirrors
-
-# --- Usage ---
-if [[ $# -lt 2 ]]; then
-  echo "Usage: $0 <hostname> <disk>"
-  echo "  e.g. $0 artemis /dev/disk/by-id/ata-Samsung_SSD_870_EVO_1TB_xxx"
-  exit 1
-fi
 
 # --- Partition path helper ---
 # /dev/sda → /dev/sda1, /dev/disk/by-id/foo → /dev/disk/by-id/foo-part1
@@ -45,8 +64,6 @@ part() {
 }
 
 # --- Config ---
-HOSTNAME=$1
-DISK=$2
 ROOT_LUKS_NAME=cryptroot
 DATA_LUKS_NAME=cryptdata
 USERNAME=gorschu
