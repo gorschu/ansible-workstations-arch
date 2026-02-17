@@ -2,7 +2,7 @@
 # desktop
 kde_state: absent
 gnome_state: present
-hyprland_state: present
+hyprland_state: absent
 
 # network
 networking_tailscale_state: absent
