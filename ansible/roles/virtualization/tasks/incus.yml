@@ -34,6 +34,12 @@
         line: "{{ virtualization_incus_root_subid_range }}"
         state: "{{ virtualization_incus_state }}"
 
+    - name: Enable and start Incus socket
+      ansible.builtin.systemd_service:
+        name: incus.socket
+        enabled: true
+        state: started
+
     - name: Trust incusbr0 interface in firewalld
       ansible.posix.firewalld:
         zone: trusted
@@ -48,13 +54,14 @@
     name: incus-admin
     state: "{{ virtualization_incus_state }}"
 
-- name: Manage Incus socket
+- name: Stop Incus socket
   become: true
   ansible.builtin.systemd_service:
     name: incus.socket
-    enabled: "{{ virtualization_incus_state == 'present' }}"
-    state: "{{ 'started' if virtualization_incus_state == 'present' else 'stopped' }}"
-  when: virtualization_incus_state in ['present', 'absent']
+    enabled: false
+    state: stopped
+  when: virtualization_incus_state == 'absent'
+  failed_when: false
 
 - name: Remove Incus
   become: true
