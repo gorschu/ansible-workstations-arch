@@ -15,10 +15,10 @@
 
 - name: Set resticprofile credentials from vault
   ansible.builtin.set_fact:
-    resticprofile_backend_credentials: "{{ vault_resticprofile_backends }}"
-    resticprofile_backend_names: "{{ vault_resticprofile_backends.keys() | list }}"
-    resticprofile_pushover_token: "{{ vault_resticprofile_pushover.token }}"
-    resticprofile_pushover_user_key: "{{ vault_resticprofile_pushover.user_key }}"
+    backup_resticprofile_backend_credentials: "{{ vault_resticprofile_backends }}"
+    backup_resticprofile_backend_names: "{{ vault_resticprofile_backends.keys() | list }}"
+    backup_resticprofile_pushover_token: "{{ vault_resticprofile_pushover.token }}"
+    backup_resticprofile_pushover_user_key: "{{ vault_resticprofile_pushover.user_key }}"
   no_log: true
 
 - name: Deploy profiles.toml
@@ -27,13 +27,13 @@
       ansible.builtin.tempfile:
         state: file
         suffix: .toml
-      register: resticprofile_temp_config
+      register: backup_resticprofile_temp_config
       changed_when: false
 
     - name: Dry-run template profiles.toml to temp location
       ansible.builtin.template:
         src: profiles.toml.j2
-        dest: "{{ resticprofile_temp_config.path }}"
+        dest: "{{ backup_resticprofile_temp_config.path }}"
         mode: "0600"
       changed_when: false
 
@@ -41,21 +41,21 @@
       ansible.builtin.stat:
         path: "{{ item }}"
         checksum_algorithm: sha256
-      register: resticprofile_config_stats
+      register: backup_resticprofile_config_stats
       loop:
         - /etc/resticprofile/profiles.toml
-        - "{{ resticprofile_temp_config.path }}"
+        - "{{ backup_resticprofile_temp_config.path }}"
 
     - name: Determine if config needs update
       vars:
-        current: "{{ resticprofile_config_stats.results[0].stat }}"
-        new: "{{ resticprofile_config_stats.results[1].stat }}"
+        current: "{{ backup_resticprofile_config_stats.results[0].stat }}"
+        new: "{{ backup_resticprofile_config_stats.results[1].stat }}"
       ansible.builtin.set_fact:
-        resticprofile_config_needs_update: >-
+        backup_resticprofile_config_needs_update: >-
           {{ not current.exists or current.checksum != new.checksum }}
 
     - name: Update resticprofile config if changed
-      when: resticprofile_config_needs_update | bool
+      when: backup_resticprofile_config_needs_update | bool
       block:
         - name: Unschedule all timers before updating config
           ansible.builtin.command:
@@ -83,7 +83,7 @@
   always:
     - name: Cleanup temp config file
       ansible.builtin.file:
-        path: "{{ resticprofile_temp_config.path }}"
+        path: "{{ backup_resticprofile_temp_config.path }}"
         state: absent
       changed_when: false
 
@@ -124,7 +124,7 @@
     group: root
   vars:
     backend: "{{ item }}"
-  loop: "{{ resticprofile_backend_names }}"
+  loop: "{{ backup_resticprofile_backend_names }}"
   no_log: true
 
 - name: Ensure status.json has appropriate permissions

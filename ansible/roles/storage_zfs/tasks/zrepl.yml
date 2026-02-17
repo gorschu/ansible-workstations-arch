@@ -3,8 +3,8 @@
 
 - name: Install zrepl
   when:
-    - zfs_state == 'present'
-    - zfs_zrepl_state == 'present'
+    - storage_zfs_state == 'present'
+    - storage_zfs_zrepl_state == 'present'
   become: true
   block:
     - name: Install zrepl from AUR
@@ -14,8 +14,8 @@
         HOME: "{{ primary_user_home }}"
       ansible.builtin.command:
         cmd: paru -S --noconfirm --needed zrepl-bin
-      register: zfs_zrepl_paru_result
-      changed_when: "'there is nothing to do' not in zfs_zrepl_paru_result.stdout"
+      register: storage_zfs_zrepl_paru_result
+      changed_when: "'there is nothing to do' not in storage_zfs_zrepl_paru_result.stdout"
 
     - name: Ensure /etc/zrepl exists
       ansible.builtin.file:
@@ -39,7 +39,7 @@
         state: started
 
 - name: Remove zrepl
-  when: zfs_zrepl_state == 'absent'
+  when: storage_zfs_zrepl_state == 'absent'
   become: true
   block:
     - name: Disable zrepl service
@@ -56,6 +56,6 @@
         HOME: "{{ primary_user_home }}"
       ansible.builtin.command:
         cmd: paru -Rns --noconfirm zrepl-bin
-      register: zfs_zrepl_paru_remove
-      changed_when: zfs_zrepl_paru_remove.rc == 0
+      register: storage_zfs_zrepl_paru_remove
+      changed_when: storage_zfs_zrepl_paru_remove.rc == 0
       failed_when: false

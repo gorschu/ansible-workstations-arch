@@ -6,11 +6,11 @@
     cmd: resticprofile unschedule --all
   changed_when: true
   failed_when: false
-  register: resticprofile_unschedule_result
+  register: backup_resticprofile_unschedule_result
 
 - name: Display unschedule output
   ansible.builtin.debug:
-    msg: "{{ resticprofile_unschedule_result.stdout_lines }}"
+    msg: "{{ backup_resticprofile_unschedule_result.stdout_lines }}"
 
 - name: Systemd daemon-reload after unscheduling
   ansible.builtin.systemd_service:
@@ -31,8 +31,8 @@
     HOME: "{{ primary_user_home }}"
   ansible.builtin.command:
     cmd: paru -Rns --noconfirm resticprofile-bin
-  register: resticprofile_paru_remove
-  changed_when: resticprofile_paru_remove.rc == 0
+  register: backup_resticprofile_paru_remove
+  changed_when: backup_resticprofile_paru_remove.rc == 0
   failed_when: false
 
 - name: Remove restic and apprise packages

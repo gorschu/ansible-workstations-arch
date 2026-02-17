@@ -2,18 +2,18 @@
 # btrbk - btrfs snapshot management for root, home, and persistent data
 
 - name: Install btrbk
-  when: btrbk_state == 'present'
+  when: backup_btrbk_state == 'present'
   block:
     - name: Discover btrfs root device
       ansible.builtin.set_fact:
-        btrbk_device: "{{ item.device }}"
+        backup_btrbk_device: "{{ item.device }}"
       when: item.fstype == 'btrfs' and item.mount == '/'
       loop: "{{ ansible_facts['mounts'] }}"
 
     - name: Verify btrfs root device was found
       ansible.builtin.fail:
         msg: "No btrfs filesystem found mounted at /. This role requires btrfs."
-      when: btrbk_device is not defined
+      when: backup_btrbk_device is not defined
 
     - name: Btrbk setup
       become: true
@@ -129,7 +129,7 @@
             state: absent
 
 - name: Remove btrbk
-  when: btrbk_state == 'absent'
+  when: backup_btrbk_state == 'absent'
   become: true
   block:
     - name: Stop and disable btrbk timers

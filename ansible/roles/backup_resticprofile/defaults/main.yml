@@ -2,9 +2,9 @@
 # resticprofile role defaults
 
 # resticprofile state: present or absent
-resticprofile_state: absent
+backup_resticprofile_state: absent
 
 # Backup sources - override in host_vars for machines with ZFS datasets etc.
-resticprofile_backup_sources:
+backup_resticprofile_backup_sources:
   - "/home"
   - "/etc"

@@ -32,13 +32,13 @@
       tags: [niri, wayland]
     - role: dms
       tags: [dms, wayland]
-    - role: zfs
+    - role: storage_zfs
       tags: [zfs, zrepl, storage]
-    - role: storage_btrfs_data
+    - role: storage_btrfs
       tags: [storage, btrfs, data]
-    - role: btrbk
+    - role: backup_btrbk
       tags: [btrbk, storage, backup]
-    - role: resticprofile
+    - role: backup_resticprofile
       tags: [resticprofile, backup]
     - role: virtualization
       tags: [virtualization, incus, docker, containers]

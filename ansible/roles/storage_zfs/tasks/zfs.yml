@@ -3,18 +3,18 @@
 # CachyOS kernel + ZFS module are handled by arch-install.sh
 
 - name: Configure ZFS
-  when: zfs_state == 'present'
+  when: storage_zfs_state == 'present'
   become: true
   block:
     - name: Check if hostid exists
       ansible.builtin.stat:
         path: /etc/hostid
-      register: zfs_hostid_check
+      register: storage_zfs_hostid_check
 
     - name: Generate host ID for ZFS
       ansible.builtin.command:
         cmd: zgenhostid
-      when: not zfs_hostid_check.stat.exists
+      when: not storage_zfs_hostid_check.stat.exists
       changed_when: true
 
     - name: Deploy zfs-load-key service for encrypted pools
@@ -41,17 +41,17 @@
 
     - name: Check if ZFS pool exists
       ansible.builtin.command:
-        cmd: zpool list -H {{ zfs_zrepl.poolname }}
-      register: zfs_pool_check
+        cmd: zpool list -H {{ storage_zfs_zrepl.poolname }}
+      register: storage_zfs_pool_check
       changed_when: false
       failed_when: false
 
     - name: Create ZFS datasets
-      when: zfs_pool_check.rc == 0
+      when: storage_zfs_pool_check.rc == 0
       block:
         - name: Create parent data dataset
           community.general.zfs:
-            name: "{{ zfs_zrepl.poolname }}/data"
+            name: "{{ storage_zfs_zrepl.poolname }}/data"
             state: present
             extra_zfs_properties:
               mountpoint: "{{ primary_user_home }}/data"
@@ -67,11 +67,11 @@
 
         - name: Create data child datasets
           community.general.zfs:
-            name: "{{ zfs_zrepl.poolname }}/data/{{ item.name }}"
+            name: "{{ storage_zfs_zrepl.poolname }}/data/{{ item.name }}"
             state: present
             extra_zfs_properties:
               canmount: "on"
-          loop: "{{ zfs_data_datasets }}"
+          loop: "{{ storage_zfs_data_datasets }}"
 
         - name: Set ownership on data child datasets
           ansible.builtin.file:
@@ -80,7 +80,7 @@
             group: "{{ primary_user }}"
             mode: "{{ item.mode }}"
             state: directory
-          loop: "{{ zfs_data_datasets }}"
+          loop: "{{ storage_zfs_data_datasets }}"
 
         - name: Create parent directories for app datasets
           ansible.builtin.file:
@@ -89,14 +89,14 @@
             group: "{{ primary_user }}"
             mode: "0700"
             state: directory
-          loop: "{{ zfs_app_datasets }}"
+          loop: "{{ storage_zfs_app_datasets }}"
 
         - name: Create app-specific datasets
           community.general.zfs:
-            name: "{{ zfs_zrepl.poolname }}/data/{{ item.name }}"
+            name: "{{ storage_zfs_zrepl.poolname }}/data/{{ item.name }}"
             state: present
             extra_zfs_properties: "{{ item.properties | combine({'mountpoint': item.mountpoint, 'canmount': 'on'}) }}"
-          loop: "{{ zfs_app_datasets }}"
+          loop: "{{ storage_zfs_app_datasets }}"
 
         - name: Set ownership on app-specific datasets
           ansible.builtin.file:
@@ -105,10 +105,10 @@
             group: "{{ primary_user }}"
             mode: "{{ item.mode }}"
             state: directory
-          loop: "{{ zfs_app_datasets }}"
+          loop: "{{ storage_zfs_app_datasets }}"
 
 - name: Remove ZFS configuration
-  when: zfs_state == 'absent'
+  when: storage_zfs_state == 'absent'
   become: true
   block:
     - name: Disable ZFS services

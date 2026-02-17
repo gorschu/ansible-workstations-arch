@@ -1,23 +1,23 @@
 ---
 - name: Configure Btrfs data mounts
-  when: storage_btrfs_data_state == 'present'
+  when: storage_btrfs_state == 'present'
   become: true
   block:
     - name: Ensure encrypted data mapper exists
       ansible.builtin.stat:
-        path: "{{ storage_btrfs_data_device }}"
-      register: storage_btrfs_data_mapper
+        path: "{{ storage_btrfs_device }}"
+      register: storage_btrfs_mapper
 
     - name: Fail if encrypted data mapper is missing
       ansible.builtin.fail:
         msg: >-
-          {{ storage_btrfs_data_device }} is missing. Ensure arch-install configured
+          {{ storage_btrfs_device }} is missing. Ensure arch-install configured
           part9 as LUKS2 and boot unlocks it as cryptdata.
-      when: not storage_btrfs_data_mapper.stat.exists
+      when: not storage_btrfs_mapper.stat.exists
 
     - name: Ensure primary data mount point exists
       ansible.builtin.file:
-        path: "{{ storage_btrfs_data_mountpoint }}"
+        path: "{{ storage_btrfs_mountpoint }}"
         state: directory
         owner: "{{ primary_user }}"
         group: "{{ primary_user }}"
@@ -25,7 +25,7 @@
 
     - name: Ensure data top-level mount point exists
       ansible.builtin.file:
-        path: "{{ storage_btrfs_data_top_mountpoint }}"
+        path: "{{ storage_btrfs_top_mountpoint }}"
         state: directory
         mode: "0700"
 
@@ -60,7 +60,7 @@
 
     - name: Ensure primary data root ownership and mode
       ansible.builtin.file:
-        path: "{{ storage_btrfs_data_mountpoint }}"
+        path: "{{ storage_btrfs_mountpoint }}"
         state: directory
         owner: "{{ primary_user }}"
         group: "{{ primary_user }}"
@@ -68,7 +68,7 @@
 
     - name: Ensure common data directories exist
       ansible.builtin.file:
-        path: "{{ storage_btrfs_data_mountpoint }}/{{ item.path }}"
+        path: "{{ storage_btrfs_mountpoint }}/{{ item.path }}"
         state: directory
         owner: "{{ primary_user }}"
         group: "{{ primary_user }}"
@@ -76,7 +76,7 @@
       loop: "{{ storage_btrfs_data_directories }}"
 
 - name: Remove Btrfs data mounts
-  when: storage_btrfs_data_state == 'absent'
+  when: storage_btrfs_state == 'absent'
   become: true
   block:
     - name: Stop and disable data mount units

@@ -1,0 +1,25 @@
+---
+# Btrfs data storage role defaults
+
+# state: present or absent
+storage_btrfs_state: present
+
+# encrypted data mapper device prepared by installer
+storage_btrfs_device: /dev/mapper/cryptdata
+
+# primary data mount
+storage_btrfs_subvolume: data
+storage_btrfs_mountpoint: "{{ primary_user_home }}/data"
+storage_btrfs_mount_options: "subvol={{ storage_btrfs_subvolume }},compress=zstd:3,noatime"
+
+# top-level mount used by snapshot tooling (subvolid=5)
+storage_btrfs_top_mountpoint: /mnt/btrfs_data
+storage_btrfs_top_mount_options: "subvolid=5,noatime"
+
+# Minimal bootstrap directories inside ~/data.
+# Detailed structure and symlinks are owned by chezmoi user-tmpfiles.d.
+storage_btrfs_data_directories:
+  - {path: general, mode: "0700"}
+  - {path: projects, mode: "0700"}
+  - {path: media, mode: "0700"}
+  - {path: mail, mode: "0700"}

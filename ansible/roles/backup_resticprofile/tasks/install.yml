@@ -15,5 +15,5 @@
     HOME: "{{ primary_user_home }}"
   ansible.builtin.command:
     cmd: paru -S --noconfirm --needed resticprofile-bin
-  register: resticprofile_paru_result
-  changed_when: "'there is nothing to do' not in resticprofile_paru_result.stdout"
+  register: backup_resticprofile_paru_result
+  changed_when: "'there is nothing to do' not in backup_resticprofile_paru_result.stdout"
