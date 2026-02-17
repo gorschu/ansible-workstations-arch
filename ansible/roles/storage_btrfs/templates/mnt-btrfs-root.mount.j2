@@ -1,0 +1,12 @@
+[Unit]
+Description=Btrfs root filesystem top-level mount
+
+[Mount]
+What={{ storage_btrfs_root_device_final }}
+Where={{ storage_btrfs_root_mountpoint }}
+Type=btrfs
+Options={{ storage_btrfs_root_mount_options }}
+DirectoryMode=0700
+
+[Install]
+WantedBy=multi-user.target

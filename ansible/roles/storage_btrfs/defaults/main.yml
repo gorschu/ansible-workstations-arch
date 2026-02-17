@@ -4,17 +4,25 @@
 # state: present or absent
 storage_btrfs_state: present
 
+# Root filesystem btrfs device (auto-discovered from /)
+# Override in host_vars if needed
+storage_btrfs_root_device: auto
+
+# Root filesystem btrfs root mount
+storage_btrfs_root_mountpoint: /mnt/btrfs_root
+storage_btrfs_root_mount_options: "subvolid=5,relatime"
+
 # encrypted data mapper device prepared by installer
 storage_btrfs_device: /dev/mapper/cryptdata
 
 # primary data mount
 storage_btrfs_subvolume: data
 storage_btrfs_mountpoint: "{{ primary_user_home }}/data"
-storage_btrfs_mount_options: "subvol={{ storage_btrfs_subvolume }},compress=zstd:3,noatime"
+storage_btrfs_mount_options: "subvol={{ storage_btrfs_subvolume }},compress=zstd:3,relatime"
 
 # top-level mount used by snapshot tooling (subvolid=5)
 storage_btrfs_top_mountpoint: /mnt/btrfs_data
-storage_btrfs_top_mount_options: "subvolid=5,noatime"
+storage_btrfs_top_mount_options: "subvolid=5,relatime"
 
 # Minimal bootstrap directories inside ~/data.
 # Detailed structure and symlinks are owned by chezmoi user-tmpfiles.d.

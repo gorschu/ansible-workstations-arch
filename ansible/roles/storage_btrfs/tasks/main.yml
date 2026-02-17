@@ -15,6 +15,31 @@
           part9 as LUKS2 and boot unlocks it as cryptdata.
       when: not storage_btrfs_mapper.stat.exists
 
+    - name: Discover btrfs root device
+      ansible.builtin.set_fact:
+        storage_btrfs_root_device_discovered: "{{ item.device }}"
+      when: item.fstype == 'btrfs' and item.mount == '/'
+      loop: "{{ ansible_facts['mounts'] }}"
+
+    - name: Use discovered or configured root device
+      ansible.builtin.set_fact:
+        storage_btrfs_root_device_final: >-
+          {{ storage_btrfs_root_device if storage_btrfs_root_device != 'auto'
+             else storage_btrfs_root_device_discovered }}
+
+    - name: Ensure root filesystem mount point exists
+      ansible.builtin.file:
+        path: "{{ storage_btrfs_root_mountpoint }}"
+        state: directory
+        mode: "0700"
+
+    - name: Deploy root filesystem mount unit
+      ansible.builtin.template:
+        src: mnt-btrfs-root.mount.j2
+        dest: /etc/systemd/system/mnt-btrfs_root.mount
+        mode: "0644"
+      notify: Systemd daemon-reload
+
     - name: Ensure primary data mount point exists
       ansible.builtin.file:
         path: "{{ storage_btrfs_mountpoint }}"
@@ -45,6 +70,12 @@
 
     - name: Flush handlers to reload systemd
       ansible.builtin.meta: flush_handlers
+
+    - name: Enable and start root filesystem mount
+      ansible.builtin.systemd_service:
+        name: mnt-btrfs_root.mount
+        enabled: true
+        state: started
 
     - name: Enable and start primary data mount
       ansible.builtin.systemd_service:
@@ -79,7 +110,7 @@
   when: storage_btrfs_state == 'absent'
   become: true
   block:
-    - name: Stop and disable data mount units
+    - name: Stop and disable mount units
       ansible.builtin.systemd_service:
         name: "{{ item }}"
         enabled: false
@@ -87,13 +118,15 @@
       loop:
         - "home-{{ primary_user }}-data.mount"
         - mnt-btrfs_data.mount
+        - mnt-btrfs_root.mount
       failed_when: false
 
-    - name: Remove data mount units
+    - name: Remove mount units
       ansible.builtin.file:
         path: "{{ item }}"
         state: absent
       loop:
         - "/etc/systemd/system/home-{{ primary_user }}-data.mount"
         - /etc/systemd/system/mnt-btrfs_data.mount
+        - /etc/systemd/system/mnt-btrfs_root.mount
       notify: Systemd daemon-reload

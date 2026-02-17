@@ -3,130 +3,100 @@
 
 - name: Install btrbk
   when: backup_btrbk_state == 'present'
+  become: true
   block:
-    - name: Discover btrfs root device
-      ansible.builtin.set_fact:
-        backup_btrbk_device: "{{ item.device }}"
-      when: item.fstype == 'btrfs' and item.mount == '/'
-      loop: "{{ ansible_facts['mounts'] }}"
+    - name: Install btrbk
+      community.general.pacman:
+        name: btrbk
+        state: present
 
-    - name: Verify btrfs root device was found
-      ansible.builtin.fail:
-        msg: "No btrfs filesystem found mounted at /. This role requires btrfs."
-      when: backup_btrbk_device is not defined
+    - name: Mask shipped btrbk.service to prevent conflicts
+      ansible.builtin.systemd_service:
+        name: btrbk.service
+        masked: true
 
-    - name: Btrbk setup
-      become: true
-      block:
-        - name: Install btrbk
-          community.general.pacman:
-            name: btrbk
-            state: present
+    - name: Mask shipped btrbk.timer to prevent conflicts
+      ansible.builtin.systemd_service:
+        name: btrbk.timer
+        masked: true
 
-        - name: Mask shipped btrbk.service to prevent conflicts
-          ansible.builtin.systemd_service:
-            name: btrbk.service
-            masked: true
+    - name: Ensure root filesystem mount is active
+      ansible.builtin.systemd_service:
+        name: mnt-btrfs_root.mount
+        state: started
 
-        - name: Mask shipped btrbk.timer to prevent conflicts
-          ansible.builtin.systemd_service:
-            name: btrbk.timer
-            masked: true
+    - name: Ensure data top-level mount is active
+      ansible.builtin.systemd_service:
+        name: mnt-btrfs_data.mount
+        state: started
 
-        - name: Deploy btrfs_root.mount unit
-          ansible.builtin.template:
-            src: mnt-btrfs-root.mount.j2
-            dest: /etc/systemd/system/mnt-btrfs_root.mount
-            mode: "0644"
-          notify: Systemd daemon-reload
+    - name: Create root snapshots directory
+      ansible.builtin.file:
+        path: /mnt/btrfs_root/snapshots
+        state: directory
+        mode: "0700"
 
-        - name: Flush handlers to reload systemd
-          ansible.builtin.meta: flush_handlers
+    - name: Create data snapshots directory
+      ansible.builtin.file:
+        path: /mnt/btrfs_data/snapshots
+        state: directory
+        mode: "0700"
 
-        - name: Create btrfs root mount point
-          ansible.builtin.file:
-            path: /mnt/btrfs_root
-            state: directory
-            mode: "0700"
+    - name: Create btrbk configuration directory
+      ansible.builtin.file:
+        path: /etc/btrbk
+        state: directory
+        mode: "0755"
 
-        - name: Enable and start btrfs_root mount
-          ansible.builtin.systemd_service:
-            name: mnt-btrfs_root.mount
-            state: started
-            enabled: true
+    - name: Deploy btrbk configurations
+      ansible.builtin.template:
+        src: "{{ item.src }}"
+        dest: "/etc/btrbk/{{ item.dest }}"
+        mode: "0644"
+      loop:
+        - {src: btrbk-root.conf.j2, dest: btrbk-root.conf}
+        - {src: btrbk-home.conf.j2, dest: btrbk-home.conf}
+        - {src: btrbk-data.conf.j2, dest: btrbk-data.conf}
 
-        - name: Ensure data top-level mount is active
-          ansible.builtin.systemd_service:
-            name: mnt-btrfs_data.mount
-            state: started
+    - name: Deploy btrbk timers
+      ansible.builtin.copy:
+        src: "{{ item }}"
+        dest: "/etc/systemd/system/{{ item }}"
+        mode: "0644"
+      loop:
+        - btrbk-root.timer
+        - btrbk-home.timer
+        - btrbk-data.timer
+      notify: Systemd daemon-reload
 
-        - name: Create root snapshots directory
-          ansible.builtin.file:
-            path: /mnt/btrfs_root/snapshots
-            state: directory
-            mode: "0700"
+    - name: Deploy btrbk services
+      ansible.builtin.copy:
+        src: "{{ item }}"
+        dest: "/etc/systemd/system/{{ item }}"
+        mode: "0644"
+      loop:
+        - btrbk-root.service
+        - btrbk-home.service
+        - btrbk-data.service
+      notify: Systemd daemon-reload
 
-        - name: Create data snapshots directory
-          ansible.builtin.file:
-            path: /mnt/btrfs_data/snapshots
-            state: directory
-            mode: "0700"
+    - name: Flush handlers to reload systemd
+      ansible.builtin.meta: flush_handlers
 
-        - name: Create btrbk configuration directory
-          ansible.builtin.file:
-            path: /etc/btrbk
-            state: directory
-            mode: "0755"
+    - name: Enable and start btrbk timers
+      ansible.builtin.systemd_service:
+        name: "{{ item }}"
+        state: started
+        enabled: true
+      loop:
+        - btrbk-root.timer
+        - btrbk-home.timer
+        - btrbk-data.timer
 
-        - name: Deploy btrbk configurations
-          ansible.builtin.template:
-            src: "{{ item.src }}"
-            dest: "/etc/btrbk/{{ item.dest }}"
-            mode: "0644"
-          loop:
-            - {src: btrbk-root.conf.j2, dest: btrbk-root.conf}
-            - {src: btrbk-home.conf.j2, dest: btrbk-home.conf}
-            - {src: btrbk-data.conf.j2, dest: btrbk-data.conf}
-
-        - name: Deploy btrbk timers
-          ansible.builtin.copy:
-            src: "{{ item }}"
-            dest: "/etc/systemd/system/{{ item }}"
-            mode: "0644"
-          loop:
-            - btrbk-root.timer
-            - btrbk-home.timer
-            - btrbk-data.timer
-          notify: Systemd daemon-reload
-
-        - name: Deploy btrbk services
-          ansible.builtin.copy:
-            src: "{{ item }}"
-            dest: "/etc/systemd/system/{{ item }}"
-            mode: "0644"
-          loop:
-            - btrbk-root.service
-            - btrbk-home.service
-            - btrbk-data.service
-          notify: Systemd daemon-reload
-
-        - name: Flush handlers to reload systemd
-          ansible.builtin.meta: flush_handlers
-
-        - name: Enable and start btrbk timers
-          ansible.builtin.systemd_service:
-            name: "{{ item }}"
-            state: started
-            enabled: true
-          loop:
-            - btrbk-root.timer
-            - btrbk-home.timer
-            - btrbk-data.timer
-
-        - name: Remove old single btrbk config if present
-          ansible.builtin.file:
-            path: /etc/btrbk/btrbk.conf
-            state: absent
+    - name: Remove old single btrbk config if present
+      ansible.builtin.file:
+        path: /etc/btrbk/btrbk.conf
+        state: absent
 
 - name: Remove btrbk
   when: backup_btrbk_state == 'absent'
@@ -143,13 +113,6 @@
         - btrbk-data.timer
       failed_when: false
 
-    - name: Stop and disable btrfs_root mount
-      ansible.builtin.systemd_service:
-        name: mnt-btrfs_root.mount
-        state: stopped
-        enabled: false
-      failed_when: false
-
     - name: Remove btrbk systemd units
       ansible.builtin.file:
         path: "{{ item }}"
@@ -161,7 +124,6 @@
         - /etc/systemd/system/btrbk-home.service
         - /etc/systemd/system/btrbk-data.timer
         - /etc/systemd/system/btrbk-data.service
-        - /etc/systemd/system/mnt-btrfs_root.mount
       notify: Systemd daemon-reload
 
     - name: Remove btrbk configurations
