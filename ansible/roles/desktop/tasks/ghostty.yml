@@ -2,14 +2,14 @@
 # Ghostty terminal emulator (official repos)
 
 - name: Install Ghostty
-  when: ghostty_state == 'present'
+  when: desktop_ghostty_state == 'present'
   become: true
   community.general.pacman:
     name: ghostty
     state: present
 
 - name: Remove Ghostty
-  when: ghostty_state == 'absent'
+  when: desktop_ghostty_state == 'absent'
   become: true
   community.general.pacman:
     name: ghostty

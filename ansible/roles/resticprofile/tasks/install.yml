@@ -9,6 +9,7 @@
     state: present
 
 - name: Install resticprofile from AUR
+  become: true
   become_user: "{{ primary_user }}"
   environment:
     HOME: "{{ primary_user_home }}"

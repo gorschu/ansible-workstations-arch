@@ -10,6 +10,6 @@ desktop_support_applications:
   - wl-clipboard
 
 # Optional desktop apps (present/absent toggles)
-ghostty_state: absent
-vscode_state: present
-beyondcompare_state: absent
+desktop_ghostty_state: absent
+desktop_vscode_state: present
+desktop_beyondcompare_state: absent

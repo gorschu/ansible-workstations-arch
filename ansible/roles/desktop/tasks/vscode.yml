@@ -2,14 +2,14 @@
 # Visual Studio Code (chaotic-aur)
 
 - name: Install Visual Studio Code
-  when: vscode_state == 'present'
+  when: desktop_vscode_state == 'present'
   become: true
   community.general.pacman:
     name: visual-studio-code-bin
     state: present
 
 - name: Remove Visual Studio Code
-  when: vscode_state == 'absent'
+  when: desktop_vscode_state == 'absent'
   become: true
   community.general.pacman:
     name: visual-studio-code-bin

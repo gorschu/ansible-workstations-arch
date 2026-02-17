@@ -6,6 +6,7 @@
   become: true
   block:
     - name: Import AgileBits GPG key for AUR package verification
+      become: true
       become_user: "{{ primary_user }}"
       environment:
         HOME: "{{ primary_user_home }}"
@@ -18,6 +19,7 @@
       until: onepassword_gpg_result.rc == 0
 
     - name: Install 1Password packages from AUR
+      become: true
       become_user: "{{ primary_user }}"
       environment:
         HOME: "{{ primary_user_home }}"
@@ -31,6 +33,7 @@
   become: true
   block:
     - name: Remove 1Password packages
+      become: true
       become_user: "{{ primary_user }}"
       environment:
         HOME: "{{ primary_user_home }}"

@@ -2,24 +2,24 @@
 # Beyond Compare (AUR: bcompare)
 
 - name: Install Beyond Compare
-  when: beyondcompare_state == 'present'
+  when: desktop_beyondcompare_state == 'present'
   become: true
   become_user: "{{ primary_user }}"
   environment:
     HOME: "{{ primary_user_home }}"
   ansible.builtin.command:
     cmd: paru -S --noconfirm --needed bcompare
-  register: beyondcompare_paru_result
-  changed_when: "'there is nothing to do' not in beyondcompare_paru_result.stdout"
+  register: desktop_beyondcompare_paru_result
+  changed_when: "'there is nothing to do' not in desktop_beyondcompare_paru_result.stdout"
 
 - name: Remove Beyond Compare
-  when: beyondcompare_state == 'absent'
+  when: desktop_beyondcompare_state == 'absent'
   become: true
   become_user: "{{ primary_user }}"
   environment:
     HOME: "{{ primary_user_home }}"
   ansible.builtin.command:
     cmd: paru -Rns --noconfirm bcompare
-  register: beyondcompare_paru_remove
-  changed_when: beyondcompare_paru_remove.rc == 0
+  register: desktop_beyondcompare_paru_remove
+  changed_when: desktop_beyondcompare_paru_remove.rc == 0
   failed_when: false

@@ -25,6 +25,7 @@
     - /var/lib/resticprofile
 
 - name: Remove resticprofile package
+  become: true
   become_user: "{{ primary_user }}"
   environment:
     HOME: "{{ primary_user_home }}"
