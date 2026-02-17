@@ -220,7 +220,6 @@ unset LUKS_PASSWORD
 mount -o subvol="${ROOT_SUBVOL}" /dev/mapper/"$ROOT_LUKS_NAME" /mnt
 mkdir -p /mnt/{home,boot}
 mount -o subvol="${HOME_SUBVOL}" /dev/mapper/"$ROOT_LUKS_NAME" /mnt/home
-mkdir -p "/mnt/home/${USERNAME}/data"
 mount "$(part "$DISK" 1)" /mnt/boot
 
 # --- Pacstrap (from CachyOS repos) ---
