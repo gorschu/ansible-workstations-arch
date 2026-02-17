@@ -39,6 +39,8 @@ virtualization_libvirt_packages:
   - virtiofsd
   - virt-manager
   - virt-viewer
+  - python-libvirt
+  - python-lxml
 
 # Users granted libvirt access. Override in inventory or play vars to customize.
 virtualization_libvirt_users:
