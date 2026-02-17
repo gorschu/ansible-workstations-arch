@@ -232,7 +232,7 @@ pacstrap /mnt \
   linux-cachyos-zfs linux-cachyos-lts-lto-zfs zfs-utils \
   intel-ucode amd-ucode \
   cryptsetup btrfs-progs \
-  dracut \
+  dracut cpio busybox tpm2-tools \
   networkmanager iwd wireless-regdb openssh \
   terminus-font \
   python \
