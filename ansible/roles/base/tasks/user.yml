@@ -1,0 +1,12 @@
+---
+# Primary user management
+
+- name: Ensure primary user is configured
+  become: true
+  ansible.builtin.user:
+    name: "{{ primary_user }}"
+    comment: "{{ primary_user_comment }}"
+    uid: "{{ primary_user_uid }}"
+    groups: "{{ primary_user_groups }}"
+    append: true
+    state: present
