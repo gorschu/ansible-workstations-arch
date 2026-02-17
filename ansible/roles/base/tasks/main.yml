@@ -1,92 +1,20 @@
 ---
-# Base system configuration - paru bootstrap, sysctl, core utilities
+# Base system configuration
 
-- name: Set up chaotic-aur and install packages
-  become: true
-  block:
-    - name: Import chaotic-aur key
-      ansible.builtin.command:
-        cmd: pacman-key --recv-key {{ base_chaotic_aur_key }} --keyserver keyserver.ubuntu.com
-      register: base_chaotic_key_recv
-      changed_when: "'imported' in base_chaotic_key_recv.stderr"
+- name: Configure Chaotic-AUR repository
+  ansible.builtin.import_tasks: chaotic_aur.yml
 
-    - name: Sign chaotic-aur key
-      ansible.builtin.command:
-        cmd: pacman-key --lsign-key {{ base_chaotic_aur_key }}
-      changed_when: false
+- name: Bootstrap AUR tooling
+  ansible.builtin.import_tasks: aur_bootstrap.yml
 
-    - name: Install chaotic-aur keyring and mirrorlist
-      community.general.pacman:
-        name:
-          - "https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst"
-          - "https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst"
-        state: present
+- name: Configure base sysctl settings
+  ansible.builtin.import_tasks: sysctl.yml
 
-    - name: Add chaotic-aur repo to pacman.conf
-      ansible.builtin.blockinfile:
-        path: /etc/pacman.conf
-        marker: "# {mark} CHAOTIC-AUR"
-        block: |
-          [chaotic-aur]
-          Include = /etc/pacman.d/chaotic-mirrorlist
-      notify: Update pacman cache
+- name: Install base package groups
+  ansible.builtin.import_tasks: packages.yml
 
-    - name: Flush handlers
-      ansible.builtin.meta: flush_handlers
+- name: Configure firmware update tooling
+  ansible.builtin.import_tasks: fwupd.yml
 
-    - name: Install base-devel and paru
-      community.general.pacman:
-        name:
-          - base-devel
-          - paru
-        state: present
-
-    - name: Allow passwordless sudo for pacman (needed for paru)
-      ansible.builtin.copy:
-        dest: /etc/sudoers.d/paru-pacman
-        content: "{{ primary_user }} ALL=(ALL) NOPASSWD: /usr/bin/pacman"
-        mode: "0440"
-        validate: visudo -cf %s
-
-    - name: Configure YAMA ptrace scope (e.g. 1Password needs this)
-      ansible.posix.sysctl:
-        name: kernel.yama.ptrace_scope
-        value: "1"
-        state: present
-        sysctl_file: /etc/sysctl.d/90-yama.conf
-        reload: true
-
-    - name: Install system utilities
-      community.general.pacman:
-        name: "{{ base_system_utils }}"
-        state: present
-
-    - name: Install CLI tools
-      community.general.pacman:
-        name: "{{ base_cli_utils }}"
-        state: present
-
-    - name: Install and enable tuned
-      block:
-        - name: Install tuned packages
-          community.general.pacman:
-            name: "{{ base_tuned_packages }}"
-            state: present
-
-        - name: Enable and start tuned
-          ansible.builtin.systemd_service:
-            name: tuned.service
-            enabled: true
-            state: started
-
-        - name: Enable and start tuned-ppd
-          ansible.builtin.systemd_service:
-            name: tuned-ppd.service
-            enabled: true
-            state: started
-
-    - name: Install host-specific extra packages
-      when: base_extra_packages | length > 0
-      community.general.pacman:
-        name: "{{ base_extra_packages }}"
-        state: present
+- name: Configure tuned services
+  ansible.builtin.import_tasks: tuned.yml

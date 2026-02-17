@@ -19,5 +19,10 @@ base_tuned_packages:
   - tuned
   - tuned-ppd
 
+base_fwupd_packages:
+  - fwupd
+
+base_fwupd_refresh_timer_enabled: true
+
 # Host-specific extra packages (override in host_vars)
 base_extra_packages: []

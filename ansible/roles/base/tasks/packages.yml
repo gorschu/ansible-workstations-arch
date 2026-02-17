@@ -1,0 +1,19 @@
+---
+- name: Install system utilities
+  become: true
+  community.general.pacman:
+    name: "{{ base_system_utils }}"
+    state: present
+
+- name: Install CLI tools
+  become: true
+  community.general.pacman:
+    name: "{{ base_cli_utils }}"
+    state: present
+
+- name: Install host-specific extra packages
+  become: true
+  when: base_extra_packages | length > 0
+  community.general.pacman:
+    name: "{{ base_extra_packages }}"
+    state: present

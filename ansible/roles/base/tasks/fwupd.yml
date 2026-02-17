@@ -1,0 +1,13 @@
+---
+- name: Install firmware update packages
+  become: true
+  community.general.pacman:
+    name: "{{ base_fwupd_packages }}"
+    state: present
+
+- name: Manage fwupd metadata refresh timer
+  become: true
+  ansible.builtin.systemd_service:
+    name: fwupd-refresh.timer
+    enabled: "{{ base_fwupd_refresh_timer_enabled | bool }}"
+    state: "{{ 'started' if (base_fwupd_refresh_timer_enabled | bool) else 'stopped' }}"

@@ -1,0 +1,16 @@
+---
+- name: Install base-devel and paru
+  become: true
+  community.general.pacman:
+    name:
+      - base-devel
+      - paru
+    state: present
+
+- name: Allow passwordless sudo for pacman (needed for paru)
+  become: true
+  ansible.builtin.copy:
+    dest: /etc/sudoers.d/paru-pacman
+    content: "{{ primary_user }} ALL=(ALL) NOPASSWD: /usr/bin/pacman"
+    mode: "0440"
+    validate: visudo -cf %s
