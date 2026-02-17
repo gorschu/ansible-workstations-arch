@@ -1,7 +1,7 @@
 ---
 # desktop
-kde_state: present
-gnome_state: absent
+kde_state: absent
+gnome_state: present
 hyprland_state: present
 
 # network
