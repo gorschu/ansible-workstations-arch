@@ -1,5 +1,7 @@
 ---
 - name: Configure Docker
+  become: true
+  when: virtualization_docker_state == 'present'
   block:
     - name: Install Docker container runtime and tooling
       community.general.pacman:
@@ -21,8 +23,6 @@
         name: docker.service
         enabled: true
         state: started
-  become: true
-  when: virtualization_docker_state == 'present'
 
 - name: Ensure docker group exists
   become: true
@@ -31,6 +31,8 @@
     state: "{{ virtualization_docker_state }}"
 
 - name: Remove Docker
+  become: true
+  when: virtualization_docker_state == 'absent'
   block:
     - name: Remove Docker packages
       community.general.pacman:
@@ -38,5 +40,3 @@
           - docker
           - docker-compose
         state: absent
-  become: true
-  when: virtualization_docker_state == 'absent'

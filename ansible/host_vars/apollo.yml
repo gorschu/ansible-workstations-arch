@@ -1,10 +1,16 @@
 ---
+# desktop
 kde_state: present
 gnome_state: absent
 hyprland_state: present
 
+# network
 networking_tailscale_state: absent
 
+# virtualization
+libvirt_state: present
+
+# filesystems
 zfs_state: absent
 zfs_zrepl_state: absent
 btrbk_state: present

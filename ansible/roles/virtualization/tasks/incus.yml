@@ -1,5 +1,7 @@
 ---
 - name: Configure Incus
+  become: true
+  when: virtualization_incus_state == 'present'
   block:
     - name: Install Incus container manager and tooling
       community.general.pacman:
@@ -39,8 +41,6 @@
         permanent: true
         immediate: true
         state: enabled
-  become: true
-  when: virtualization_incus_state == 'present'
 
 - name: Ensure incus-admin group exists
   become: true
@@ -57,10 +57,10 @@
   when: virtualization_incus_state in ['present', 'absent']
 
 - name: Remove Incus
+  become: true
+  when: virtualization_incus_state == 'absent'
   block:
     - name: Remove Incus packages
       community.general.pacman:
         name: "{{ virtualization_incus_packages }}"
         state: absent
-  become: true
-  when: virtualization_incus_state == 'absent'
