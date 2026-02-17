@@ -4,6 +4,9 @@
 - name: Configure primary user
   ansible.builtin.import_tasks: user.yml
 
+- name: Configure security settings
+  ansible.builtin.import_tasks: security.yml
+
 - name: Configure Chaotic-AUR repository
   ansible.builtin.import_tasks: chaotic_aur.yml
 

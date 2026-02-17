@@ -1,0 +1,26 @@
+---
+# PAM security configuration
+
+- name: Configure PAM faillock
+  become: true
+  block:
+    - name: Set faillock deny attempts
+      ansible.builtin.lineinfile:
+        path: /etc/security/faillock.conf
+        regexp: '^#?\s*deny\s*='
+        line: 'deny = {{ base_faillock_deny }}'
+        state: present
+
+    - name: Set faillock unlock time
+      ansible.builtin.lineinfile:
+        path: /etc/security/faillock.conf
+        regexp: '^#?\s*unlock_time\s*='
+        line: 'unlock_time = {{ base_faillock_unlock_time }}'
+        state: present
+
+    - name: Set faillock fail interval
+      ansible.builtin.lineinfile:
+        path: /etc/security/faillock.conf
+        regexp: '^#?\s*fail_interval\s*='
+        line: 'fail_interval = {{ base_faillock_fail_interval }}'
+        state: present

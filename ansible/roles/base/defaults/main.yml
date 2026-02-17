@@ -28,3 +28,8 @@ base_fwupd_refresh_timer_enabled: true
 
 # Host-specific extra packages (override in host_vars)
 base_extra_packages: []
+
+# PAM faillock settings
+base_faillock_deny: 10
+base_faillock_unlock_time: 300
+base_faillock_fail_interval: 600
