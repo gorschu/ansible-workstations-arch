@@ -1,14 +1,17 @@
 ---
+# Common virtualization packages (shared across roles)
+virtualization_common_packages:
+  - qemu-desktop
+  - swtpm
+  - virt-viewer
+
 # Incus configuration
 virtualization_incus_state: absent  # present or absent
 
-# Packages required for Incus
+# Packages required for Incus (role-specific)
 virtualization_incus_packages:
   - incus
   - incus-tools
-  - swtpm
-  - qemu-audio-spice
-  - virt-viewer
 
 # Users granted Incus administrative access. Override in inventory or play vars to customize.
 virtualization_incus_admin_users:
@@ -27,18 +30,15 @@ virtualization_docker_users:
 # libvirt/QEMU configuration
 virtualization_libvirt_state: absent  # present or absent
 
-# Packages required for libvirt/QEMU/KVM
+# Packages required for libvirt/QEMU/KVM (role-specific)
 virtualization_libvirt_packages:
   - libvirt
-  - qemu-desktop
   - dnsmasq
   - openbsd-netcat
   - dmidecode
   - edk2-ovmf
-  - swtpm
   - virtiofsd
   - virt-manager
-  - virt-viewer
   - libvirt-python
   - python-lxml
 

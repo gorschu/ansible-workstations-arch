@@ -1,4 +1,13 @@
 ---
+- name: Install common virtualization packages
+  become: true
+  community.general.pacman:
+    name: "{{ virtualization_common_packages }}"
+    state: present
+  when: >
+    virtualization_incus_state == 'present' or
+    virtualization_libvirt_state == 'present'
+
 - name: Include Incus tasks
   ansible.builtin.include_tasks: incus.yml
 
