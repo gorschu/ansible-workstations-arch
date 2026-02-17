@@ -34,11 +34,10 @@
         group: root
       when: virtualization_libvirt_storage_pool_enabled
 
-    - name: Define and activate default storage pool
+    - name: Define default storage pool
       community.libvirt.virt_pool:
         name: default
-        state: active
-        autostart: true
+        state: present
         xml: |
           <pool type='dir'>
             <name>default</name>
@@ -46,6 +45,13 @@
               <path>{{ virtualization_libvirt_storage_pool_path }}</path>
             </target>
           </pool>
+      when: virtualization_libvirt_storage_pool_enabled
+
+    - name: Activate default storage pool
+      community.libvirt.virt_pool:
+        name: default
+        state: active
+        autostart: true
       when: virtualization_libvirt_storage_pool_enabled
 
 - name: Ensure libvirt group exists
