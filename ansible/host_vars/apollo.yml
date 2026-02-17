@@ -5,7 +5,7 @@ gnome_state: present
 hyprland_state: absent
 
 # network
-networking_tailscale_state: absent
+networking_tailscale_state: present
 
 # virtualization
 virtualization_libvirt_state: present
