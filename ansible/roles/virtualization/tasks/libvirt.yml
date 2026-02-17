@@ -69,6 +69,15 @@
   become: true
   when: virtualization_libvirt_state == 'absent'
   block:
+    - name: Remove users from libvirt group
+      ansible.builtin.user:
+        name: "{{ item }}"
+        groups: libvirt
+        append: false
+      loop: "{{ virtualization_libvirt_users }}"
+      when: virtualization_libvirt_users | length > 0
+      failed_when: false
+
     - name: Remove libvirt packages
       community.general.pacman:
         name: "{{ virtualization_libvirt_packages }}"

@@ -67,6 +67,15 @@
   become: true
   when: virtualization_incus_state == 'absent'
   block:
+    - name: Remove users from incus-admin group
+      ansible.builtin.user:
+        name: "{{ item }}"
+        groups: incus-admin
+        append: false
+      loop: "{{ virtualization_incus_admin_users }}"
+      when: virtualization_incus_admin_users | length > 0
+      failed_when: false
+
     - name: Remove Incus packages
       community.general.pacman:
         name: "{{ virtualization_incus_packages }}"

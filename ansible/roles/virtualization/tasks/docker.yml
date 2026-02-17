@@ -34,6 +34,15 @@
   become: true
   when: virtualization_docker_state == 'absent'
   block:
+    - name: Remove users from docker group
+      ansible.builtin.user:
+        name: "{{ item }}"
+        groups: docker
+        append: false
+      loop: "{{ virtualization_docker_users }}"
+      when: virtualization_docker_users | length > 0
+      failed_when: false
+
     - name: Remove Docker packages
       community.general.pacman:
         name:
