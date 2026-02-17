@@ -1,12 +1,4 @@
 ---
-- name: Install base-devel and paru
-  become: true
-  community.general.pacman:
-    name:
-      - base-devel
-      - paru
-    state: present
-
 - name: Allow passwordless sudo for pacman (needed for paru)
   become: true
   ansible.builtin.copy:

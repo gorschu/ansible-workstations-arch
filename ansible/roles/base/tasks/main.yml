@@ -7,14 +7,14 @@
 - name: Configure Chaotic-AUR repository
   ansible.builtin.import_tasks: chaotic_aur.yml
 
-- name: Bootstrap AUR tooling
-  ansible.builtin.import_tasks: aur_bootstrap.yml
+- name: Install base package groups
+  ansible.builtin.import_tasks: packages.yml
+
+- name: Configure paru passwordless sudo
+  ansible.builtin.import_tasks: paru_sudo.yml
 
 - name: Configure base sysctl settings
   ansible.builtin.import_tasks: sysctl.yml
-
-- name: Install base package groups
-  ansible.builtin.import_tasks: packages.yml
 
 - name: Configure firmware update tooling
   ansible.builtin.import_tasks: fwupd.yml

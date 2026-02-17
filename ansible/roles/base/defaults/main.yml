@@ -3,6 +3,8 @@
 base_chaotic_aur_key: "3056513887B78AEB"
 
 base_system_utils:
+  - base-devel
+  - paru
   - gdisk
   - parted
   - dmidecode
