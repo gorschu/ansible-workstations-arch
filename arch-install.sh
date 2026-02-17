@@ -8,7 +8,7 @@ usage() {
   echo "  e.g. $0 artemis /dev/disk/by-id/ata-Samsung_SSD_870_EVO_1TB_xxx"
 }
 
-# --- Required args (fail fast before doing any setup) ---
+# Check args before doing anything
 if [[ $# -ne 2 ]]; then
   usage
   exit 1
@@ -29,10 +29,10 @@ if [[ -z "$DISK" || ! -b "$DISK" ]]; then
   exit 1
 fi
 
-# --- Dependencies ---
+# Need gum for prompts
 pacman -Sy --noconfirm --needed gum &>/dev/null
 
-# --- CachyOS repos (on live ISO, so pacstrap uses them) ---
+# Setup CachyOS repos on live ISO so pacstrap can use them
 echo "Setting up CachyOS repositories..."
 curl -sL https://mirror.cachyos.org/cachyos-repo.tar.xz -o /tmp/cachyos-repo.tar.xz
 tar xJf /tmp/cachyos-repo.tar.xz -C /tmp
@@ -46,7 +46,7 @@ pacman -Sy --noconfirm cachyos-rate-mirrors
 echo "Ranking mirrors..."
 cachyos-rate-mirrors
 
-# --- Partition path helper ---
+# Partition path helper
 # /dev/sda → /dev/sda1, /dev/disk/by-id/foo → /dev/disk/by-id/foo-part1
 part() {
   local disk=$1 num=$2
@@ -63,7 +63,7 @@ part() {
   fi
 }
 
-# --- Config ---
+# Config
 ROOT_LUKS_NAME=cryptroot
 DATA_LUKS_NAME=cryptdata
 USERNAME=gorschu
@@ -86,7 +86,7 @@ ask_secret() {
   echo "$pw"
 }
 
-# --- Detect persistent data partition 9 ---
+# Detect if there's already a data partition (part9) to preserve
 if sgdisk -p "$DISK" 2>/dev/null | awk '{print $1}' | grep -qx "${DATA_PART_NUM}"; then
   DATA_PRESERVE=true
   DATA_START=$(sgdisk -i "${DATA_PART_NUM}" "$DISK" | awk '/^First sector:/{print $3}')
@@ -114,10 +114,18 @@ gum style --border rounded --padding "0 1" --border-foreground 4 "$LAYOUT"
 echo ""
 gum confirm "Wipe and install?" || exit 1
 
-# Ask once and reuse for root + data setup.
+# Collect all secrets upfront so install can run unattended
 echo ""
-echo "Setting up LUKS passphrase for root and persistent data..."
+echo "Collecting passwords for unattended install..."
 LUKS_PASSWORD=$(ask_secret "disk encryption (shared root + data)")
+USER_PASSWORD=$(ask_secret "$USERNAME")
+
+if gum confirm "Use the same password for root?"; then
+  ROOT_PASSWORD="$USER_PASSWORD"
+else
+  ROOT_PASSWORD=$(ask_secret "root")
+fi
+
 DATA_PART=$(part "$DISK" "${DATA_PART_NUM}")
 
 # Validate preserved part9 before any destructive partitioning.
@@ -148,7 +156,7 @@ if [[ "$DATA_PRESERVE" == true ]]; then
   fi
 fi
 
-# --- Partition ---
+# Partition the disk
 if [[ "$DATA_PRESERVE" == true ]]; then
   for part in $(sgdisk -p "$DISK" | awk -v keep="${DATA_PART_NUM}" '/^ *[0-9]/ && $1 != keep {print $1}'); do
     sgdisk -d "$part" "$DISK"
@@ -167,13 +175,13 @@ sgdisk -c "${DATA_PART_NUM}:cryptdata" "$DISK"
 partprobe "$DISK"
 sleep 1
 
-# --- Clean EFI boot entries ---
+# Clean out old EFI boot entries
 echo "Cleaning EFI boot entries..."
 while read -r entry; do
   efibootmgr -q -Bb "$entry" || true
 done < <(efibootmgr 2>/dev/null | grep -oP 'Boot\K[0-9A-F]{4}' || true)
 
-# --- Filesystems ---
+# Create filesystems
 mkfs.fat -F32 "$(part "$DISK" 1)"
 
 echo ""
@@ -183,13 +191,13 @@ printf '%s' "$LUKS_PASSWORD" | cryptsetup luksFormat --type luks2 --batch-mode -
 printf '%s' "$LUKS_PASSWORD" | cryptsetup open --key-file - "$(part "$DISK" 2)" "$ROOT_LUKS_NAME"
 mkfs.btrfs /dev/mapper/"$ROOT_LUKS_NAME"
 
-# --- Btrfs subvols ---
+# Create btrfs subvolumes
 mount /dev/mapper/"$ROOT_LUKS_NAME" /mnt
 btrfs subvolume create "/mnt/${ROOT_SUBVOL}"
 btrfs subvolume create "/mnt/${HOME_SUBVOL}"
 umount /mnt
 
-# --- Persistent data partition (part9) ---
+# Setup data partition (part9)
 if [[ "$DATA_PRESERVE" != true ]]; then
   printf '%s' "$LUKS_PASSWORD" | cryptsetup luksFormat --type luks2 --batch-mode --key-file - "$DATA_PART"
 fi
@@ -216,13 +224,13 @@ rmdir /mnt/data_setup
 cryptsetup close "$DATA_LUKS_NAME"
 unset LUKS_PASSWORD
 
-# --- Mount (ESP at /boot for systemd-boot) ---
+# Mount everything (ESP at /boot for systemd-boot)
 mount -o subvol="${ROOT_SUBVOL}" /dev/mapper/"$ROOT_LUKS_NAME" /mnt
 mkdir -p /mnt/{home,boot}
 mount -o subvol="${HOME_SUBVOL}" /dev/mapper/"$ROOT_LUKS_NAME" /mnt/home
 mount "$(part "$DISK" 1)" /mnt/boot
 
-# --- Pacstrap (from CachyOS repos) ---
+# Install base system
 pacstrap /mnt \
   base base-devel linux-firmware \
   cachyos-keyring cachyos-mirrorlist cachyos-v3-mirrorlist cachyos-v4-mirrorlist \
@@ -238,21 +246,21 @@ pacstrap /mnt \
   cachyos-settings cachyos-rate-mirrors \
   sudo neovim git
 
-# --- Fstab ---
+# Generate fstab
 genfstab -U /mnt >>/mnt/etc/fstab
 sed -i '/\/boot.*vfat/s/relatime/relatime,fmask=0077,dmask=0077/' /mnt/etc/fstab
 
-# --- CachyOS pacman conf
+# Copy CachyOS pacman config
 cp /etc/pacman.conf /mnt/etc/pacman.conf
 
-# --- Static configs (rootfs overlay) ---
+# Copy static configs from rootfs overlay
 cp -r "$SCRIPT_DIR/rootfs/." /mnt/
 
-# --- LUKS UUIDs for boot entries ---
+# Get LUKS UUIDs for boot entries
 ROOT_LUKS_UUID=$(blkid -s UUID -o value "$(part "$DISK" 2)")
 DATA_LUKS_UUID=$(blkid -s UUID -o value "$DATA_PART")
 
-# --- systemd-boot entries ---
+# Create systemd-boot entries
 mkdir -p /mnt/boot/loader/entries
 
 cat >/mnt/boot/loader/entries/arch.conf <<EOF
@@ -269,16 +277,7 @@ initrd /initramfs-linux-cachyos-lts-lto.img
 options rd.luks.name=${ROOT_LUKS_UUID}=${ROOT_LUKS_NAME} rd.luks.name=${DATA_LUKS_UUID}=${DATA_LUKS_NAME} root=/dev/mapper/${ROOT_LUKS_NAME} rootflags=subvol=${ROOT_SUBVOL} rw
 EOF
 
-# --- Passwords (before chroot — passwd needs a terminal) ---
-USER_PASSWORD=$(ask_secret "$USERNAME")
-
-if gum confirm "Use the same password for root?"; then
-  ROOT_PASSWORD="$USER_PASSWORD"
-else
-  ROOT_PASSWORD=$(ask_secret "root")
-fi
-
-# --- Chroot ---
+# Chroot and finish setup
 arch-chroot /mnt /bin/bash <<CHROOT
 set -euo pipefail
 
@@ -330,16 +329,8 @@ if [[ $? -ne 0 ]]; then
   exit 1
 fi
 
-# --- DNS (systemd-resolved stub, must be outside chroot — arch-chroot bind-mounts resolv.conf) ---
+# Setup systemd-resolved stub (must be outside chroot since arch-chroot bind-mounts resolv.conf)
 rm -f /mnt/etc/resolv.conf
 ln -s /run/systemd/resolve/stub-resolv.conf /mnt/etc/resolv.conf
 
-echo ""
-gum style --border rounded --padding "0 1" --border-foreground 2 \
-  "Done. Verify /mnt/boot/ has vmlinuz-linux-cachyos + initramfs-linux-cachyos.img, then:" \
-  "" \
-  "  umount -R /mnt" \
-  "  cryptsetup close ${ROOT_LUKS_NAME}" \
-  "  reboot" \
-  "" \
-  "ZFS kernel modules remain installed, but default workstation data uses encrypted btrfs on part9."
+echo "Done."
