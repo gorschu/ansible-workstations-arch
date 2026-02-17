@@ -12,6 +12,7 @@ base_system_utils:
 base_cli_utils:
   - pkgfile
   - zsh
+  - less
   - neovim
   - libarchive
   - gnupg
