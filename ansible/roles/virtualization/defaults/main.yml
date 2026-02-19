@@ -27,6 +27,33 @@ virtualization_docker_state: absent  # present or absent
 virtualization_docker_users:
   - "{{ primary_user }}"
 
+# Podman configuration
+virtualization_podman_state: present  # present or absent
+
+# Core Podman packages
+virtualization_podman_packages:
+  - podman
+  - netavark
+  - aardvark-dns
+
+# Optional Podman packages
+virtualization_podman_optional_packages:
+  - podman-compose
+
+# Whether to install optional packages
+virtualization_podman_install_optional: true
+
+# Users for which to configure rootless Podman (subuid/subgid ranges)
+virtualization_podman_users:
+  - "{{ primary_user }}"
+
+# Subordinate UID/GID range configuration for rootless Podman
+virtualization_podman_subid_base: 100000
+virtualization_podman_subid_range: 65536
+
+# Whether to enable podman-restart.service (container restart policies on boot)
+virtualization_podman_enable_restart_service: true
+
 # libvirt/QEMU configuration
 virtualization_libvirt_state: absent  # present or absent
 

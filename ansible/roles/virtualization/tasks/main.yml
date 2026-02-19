@@ -6,13 +6,25 @@
     state: present
   when: >
     virtualization_incus_state == 'present' or
-    virtualization_libvirt_state == 'present'
+    virtualization_libvirt_state == 'present' or
+    virtualization_podman_state == 'present'
+  tags:
+    - incus
+    - libvirt
+    - podman
 
 - name: Include Incus tasks
   ansible.builtin.include_tasks: incus.yml
+  tags: incus
 
 - name: Include Docker tasks
   ansible.builtin.include_tasks: docker.yml
+  tags: docker
+
+- name: Include Podman tasks
+  ansible.builtin.include_tasks: podman.yml
+  tags: podman
 
 - name: Include libvirt tasks
   ansible.builtin.include_tasks: libvirt.yml
+  tags: libvirt

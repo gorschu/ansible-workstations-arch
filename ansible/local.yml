@@ -41,5 +41,5 @@
     - role: backup_resticprofile
       tags: [resticprofile, backup]
     - role: virtualization
-      tags: [virtualization, incus, docker, containers]
+      tags: [virtualization, incus, docker, podman, containers]
 # vim: set ft=yaml.ansible:

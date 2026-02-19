@@ -1,0 +1,121 @@
+---
+- name: Configure Podman
+  become: true
+  when: virtualization_podman_state == 'present'
+  block:
+    - name: Install core Podman packages
+      community.general.pacman:
+        name: "{{ virtualization_podman_packages }}"
+        state: present
+
+    - name: Install optional Podman packages
+      community.general.pacman:
+        name: "{{ virtualization_podman_optional_packages }}"
+        state: present
+      when: virtualization_podman_install_optional
+
+    - name: Deploy Podman registry configuration
+      ansible.builtin.template:
+        src: 10-unqualified-search-registries.conf.j2
+        dest: /etc/containers/registries.conf.d/10-unqualified-search-registries.conf
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Configure sysctl for unprivileged user namespaces
+      ansible.posix.sysctl:
+        name: kernel.unprivileged_userns_clone
+        value: "1"
+        state: present
+        sysctl_file: /etc/sysctl.d/99-podman-userns.conf
+        reload: true
+
+    - name: Configure subordinate UID ranges for rootless Podman
+      ansible.builtin.lineinfile:
+        path: /etc/subuid
+        create: true
+        mode: "0644"
+        regexp: '^{{ item }}:'
+        line: "{{ item }}:{{ virtualization_podman_subid_base }}:{{ virtualization_podman_subid_range }}"
+        state: present
+      loop: "{{ virtualization_podman_users }}"
+      when: virtualization_podman_users | length > 0
+
+    - name: Configure subordinate GID ranges for rootless Podman
+      ansible.builtin.lineinfile:
+        path: /etc/subgid
+        create: true
+        mode: "0644"
+        regexp: '^{{ item }}:'
+        line: "{{ item }}:{{ virtualization_podman_subid_base }}:{{ virtualization_podman_subid_range }}"
+        state: present
+      loop: "{{ virtualization_podman_users }}"
+      when: virtualization_podman_users | length > 0
+
+    - name: Enable and start Podman socket
+      ansible.builtin.systemd_service:
+        name: podman.socket
+        enabled: true
+        state: started
+
+    - name: Enable and start podman-restart service
+      ansible.builtin.systemd_service:
+        name: podman-restart.service
+        enabled: true
+        state: started
+      when: virtualization_podman_enable_restart_service
+
+- name: Stop Podman services
+  become: true
+  when: virtualization_podman_state == 'absent'
+  block:
+    - name: Stop and disable Podman socket
+      ansible.builtin.systemd_service:
+        name: podman.socket
+        enabled: false
+        state: stopped
+      failed_when: false
+
+    - name: Stop and disable podman-restart service
+      ansible.builtin.systemd_service:
+        name: podman-restart.service
+        enabled: false
+        state: stopped
+      failed_when: false
+
+- name: Remove Podman
+  become: true
+  when: virtualization_podman_state == 'absent'
+  block:
+    - name: Remove subordinate UID ranges for rootless Podman
+      ansible.builtin.lineinfile:
+        path: /etc/subuid
+        regexp: '^{{ item }}:'
+        state: absent
+      loop: "{{ virtualization_podman_users }}"
+      when: virtualization_podman_users | length > 0
+      failed_when: false
+
+    - name: Remove subordinate GID ranges for rootless Podman
+      ansible.builtin.lineinfile:
+        path: /etc/subgid
+        regexp: '^{{ item }}:'
+        state: absent
+      loop: "{{ virtualization_podman_users }}"
+      when: virtualization_podman_users | length > 0
+      failed_when: false
+
+    - name: Remove Podman registry configuration
+      ansible.builtin.file:
+        path: /etc/containers/registries.conf.d/10-unqualified-search-registries.conf
+        state: absent
+
+    - name: Remove sysctl configuration for unprivileged user namespaces
+      ansible.builtin.file:
+        path: /etc/sysctl.d/99-podman-userns.conf
+        state: absent
+
+    - name: Remove Podman packages
+      community.general.pacman:
+        name: "{{ virtualization_podman_packages + virtualization_podman_optional_packages }}"
+        state: absent
