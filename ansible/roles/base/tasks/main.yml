@@ -3,24 +3,32 @@
 
 - name: Configure primary user
   ansible.builtin.import_tasks: user.yml
+  tags: user
 
 - name: Configure security settings
   ansible.builtin.import_tasks: security.yml
+  tags: security
 
 - name: Configure Chaotic-AUR repository
   ansible.builtin.import_tasks: chaotic_aur.yml
+  tags: chaotic_aur
 
 - name: Install base package groups
   ansible.builtin.import_tasks: packages.yml
+  tags: packages
 
 - name: Configure paru passwordless sudo
   ansible.builtin.import_tasks: paru_sudo.yml
+  tags: paru_sudo
 
 - name: Configure base sysctl settings
   ansible.builtin.import_tasks: sysctl.yml
+  tags: sysctl
 
 - name: Configure firmware update tooling
   ansible.builtin.import_tasks: fwupd.yml
+  tags: fwupd
 
 - name: Configure tuned services
   ansible.builtin.import_tasks: tuned.yml
+  tags: tuned
