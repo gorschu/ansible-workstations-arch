@@ -13,7 +13,7 @@ ansible-galaxy role install -r requirements.yml
 if op account list &>/dev/null; then
   echo "==> Using 1Password for vault password"
   ansible-playbook \
-    --vault-password-file <(op read "op://Ansible/workstations/password") \
+    --vault-password-file <(op read "op://Ansible/vault-workstations/password") \
     --ask-become-pass \
     "$@" \
     local.yml
