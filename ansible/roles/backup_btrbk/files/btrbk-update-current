@@ -1,0 +1,6 @@
+#!/bin/bash
+set -euo pipefail
+snapdir="$1"
+pattern="$2"
+latest=$(ls -1d "${snapdir}/${pattern}".20* 2>/dev/null | sort | tail -1)
+[[ -n "$latest" ]] && ln -sfn "$latest" "${snapdir}/${pattern}.current"

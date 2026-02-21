@@ -1,9 +1,0 @@
-[Unit]
-Description=btrbk home subvolume snapshot
-Documentation=man:btrbk(1)
-Requires=mnt-btrfs_root.mount
-After=mnt-btrfs_root.mount
-
-[Service]
-Type=oneshot
-ExecStart=/usr/bin/btrbk -c /etc/btrbk/btrbk-home.conf run

@@ -1,8 +1,8 @@
 [Unit]
-Description=btrbk data subvolume snapshot timer
+Description=btrbk {{ job.description }} timer
 
 [Timer]
-OnCalendar=hourly
+OnCalendar={{ job.schedule }}
 Persistent=true
 RandomizedDelaySec=5min
 

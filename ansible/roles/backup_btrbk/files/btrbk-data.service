@@ -1,9 +1,0 @@
-[Unit]
-Description=btrbk data subvolume snapshot
-Documentation=man:btrbk(1)
-Requires=mnt-btrfs_data.mount
-After=mnt-btrfs_data.mount
-
-[Service]
-Type=oneshot
-ExecStart=/usr/bin/btrbk -c /etc/btrbk/btrbk-data.conf run

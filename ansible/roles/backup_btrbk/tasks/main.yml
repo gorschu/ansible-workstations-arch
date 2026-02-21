@@ -1,5 +1,5 @@
 ---
-# btrbk - btrfs snapshot management for root, home, and persistent data
+# btrbk - btrfs snapshot management
 
 - name: Install btrbk
   when: backup_btrbk_state == 'present'
@@ -20,27 +20,18 @@
         name: btrbk.timer
         masked: true
 
-    - name: Ensure root filesystem mount is active
+    - name: Ensure volume mounts are active
       ansible.builtin.systemd_service:
-        name: mnt-btrfs_root.mount
+        name: "{{ item | to_systemd_mount_unit }}"
         state: started
+      loop: "{{ backup_btrbk_jobs | map(attribute='volume_mount') | unique | list }}"
 
-    - name: Ensure data top-level mount is active
-      ansible.builtin.systemd_service:
-        name: mnt-btrfs_data.mount
-        state: started
-
-    - name: Create root snapshots directory
-      ansible.builtin.file:
-        path: /mnt/btrfs_root/snapshots
-        state: directory
-        mode: "0700"
-
-    - name: Create data snapshots directory
-      ansible.builtin.file:
-        path: /mnt/btrfs_data/snapshots
-        state: directory
-        mode: "0700"
+    - name: Create snapshot subvolumes
+      community.general.btrfs_subvolume:
+        name: snapshots
+        filesystem_uuid: "{{ item | uuid_for_mount(ansible_facts['mounts']) }}"
+        state: present
+      loop: "{{ backup_btrbk_jobs | map(attribute='volume_mount') | unique | list }}"
 
     - name: Create btrbk configuration directory
       ansible.builtin.file:
@@ -50,48 +41,48 @@
 
     - name: Deploy btrbk configurations
       ansible.builtin.template:
-        src: "{{ item.src }}"
-        dest: "/etc/btrbk/{{ item.dest }}"
+        src: btrbk-job.conf.j2
+        dest: "/etc/btrbk/btrbk-{{ item.name }}.conf"
         mode: "0644"
-      loop:
-        - {src: btrbk-root.conf.j2, dest: btrbk-root.conf}
-        - {src: btrbk-home.conf.j2, dest: btrbk-home.conf}
-        - {src: btrbk-data.conf.j2, dest: btrbk-data.conf}
+      vars:
+        job: "{{ item }}"
+      loop: "{{ backup_btrbk_jobs }}"
 
-    - name: Deploy btrbk timers
-      ansible.builtin.copy:
-        src: "{{ item }}"
-        dest: "/etc/systemd/system/{{ item }}"
+    - name: Deploy btrbk service units
+      ansible.builtin.template:
+        src: btrbk-job.service.j2
+        dest: "/etc/systemd/system/btrbk-{{ item.name }}.service"
         mode: "0644"
-      loop:
-        - btrbk-root.timer
-        - btrbk-home.timer
-        - btrbk-data.timer
+      vars:
+        job: "{{ item }}"
+      loop: "{{ backup_btrbk_jobs }}"
       notify: Systemd daemon-reload
 
-    - name: Deploy btrbk services
-      ansible.builtin.copy:
-        src: "{{ item }}"
-        dest: "/etc/systemd/system/{{ item }}"
+    - name: Deploy btrbk timer units
+      ansible.builtin.template:
+        src: btrbk-job.timer.j2
+        dest: "/etc/systemd/system/btrbk-{{ item.name }}.timer"
         mode: "0644"
-      loop:
-        - btrbk-root.service
-        - btrbk-home.service
-        - btrbk-data.service
+      vars:
+        job: "{{ item }}"
+      loop: "{{ backup_btrbk_jobs }}"
       notify: Systemd daemon-reload
+
+    - name: Deploy btrbk-update-current script
+      ansible.builtin.copy:
+        src: btrbk-update-current
+        dest: /usr/local/bin/btrbk-update-current
+        mode: "0755"
 
     - name: Flush handlers to reload systemd
       ansible.builtin.meta: flush_handlers
 
     - name: Enable and start btrbk timers
       ansible.builtin.systemd_service:
-        name: "{{ item }}"
+        name: "btrbk-{{ item.name }}.timer"
         state: started
         enabled: true
-      loop:
-        - btrbk-root.timer
-        - btrbk-home.timer
-        - btrbk-data.timer
+      loop: "{{ backup_btrbk_jobs }}"
 
     - name: Remove old single btrbk config if present
       ansible.builtin.file:
@@ -104,36 +95,32 @@
   block:
     - name: Stop and disable btrbk timers
       ansible.builtin.systemd_service:
-        name: "{{ item }}"
+        name: "btrbk-{{ item.name }}.timer"
         state: stopped
         enabled: false
-      loop:
-        - btrbk-root.timer
-        - btrbk-home.timer
-        - btrbk-data.timer
+      loop: "{{ backup_btrbk_jobs }}"
       failed_when: false
 
     - name: Remove btrbk systemd units
       ansible.builtin.file:
         path: "{{ item }}"
         state: absent
-      loop:
-        - /etc/systemd/system/btrbk-root.timer
-        - /etc/systemd/system/btrbk-root.service
-        - /etc/systemd/system/btrbk-home.timer
-        - /etc/systemd/system/btrbk-home.service
-        - /etc/systemd/system/btrbk-data.timer
-        - /etc/systemd/system/btrbk-data.service
+      loop: "{{ backup_btrbk_jobs | map(attribute='name')
+               | map('regex_replace', '^(.*)$', '/etc/systemd/system/btrbk-\\1.service') | list
+               + backup_btrbk_jobs | map(attribute='name')
+               | map('regex_replace', '^(.*)$', '/etc/systemd/system/btrbk-\\1.timer') | list }}"
       notify: Systemd daemon-reload
 
     - name: Remove btrbk configurations
       ansible.builtin.file:
-        path: "{{ item }}"
+        path: "/etc/btrbk/btrbk-{{ item.name }}.conf"
         state: absent
-      loop:
-        - /etc/btrbk/btrbk-root.conf
-        - /etc/btrbk/btrbk-home.conf
-        - /etc/btrbk/btrbk-data.conf
+      loop: "{{ backup_btrbk_jobs }}"
+
+    - name: Remove btrbk-update-current script
+      ansible.builtin.file:
+        path: /usr/local/bin/btrbk-update-current
+        state: absent
 
     - name: Unmask shipped btrbk services
       ansible.builtin.systemd_service:

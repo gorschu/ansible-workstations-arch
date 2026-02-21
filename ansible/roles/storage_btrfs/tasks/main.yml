@@ -15,17 +15,11 @@
           part9 as LUKS2 and boot unlocks it as cryptdata.
       when: not storage_btrfs_mapper.stat.exists
 
-    - name: Discover btrfs root device
-      ansible.builtin.set_fact:
-        storage_btrfs_root_device_discovered: "{{ item.device }}"
-      when: item.fstype == 'btrfs' and item.mount == '/'
-      loop: "{{ ansible_facts['mounts'] }}"
-
-    - name: Use discovered or configured root device
+    - name: Set btrfs root device
       ansible.builtin.set_fact:
         storage_btrfs_root_device_final: >-
           {{ storage_btrfs_root_device if storage_btrfs_root_device != 'auto'
-             else storage_btrfs_root_device_discovered }}
+             else '/' | device_for_mount(ansible_facts['mounts'], 'btrfs') }}
 
     - name: Ensure root filesystem mount point exists
       ansible.builtin.file:

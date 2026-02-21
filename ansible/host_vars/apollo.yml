@@ -4,6 +4,12 @@ kde_state: absent
 gnome_state: present
 hyprland_state: absent
 
+backup_resticprofile_state: present
+backup_resticprofile_backup_sources:
+  - /home
+  - /home/gorschu/data
+  - /etc
+
 # network
 networking_tailscale_state: present
 

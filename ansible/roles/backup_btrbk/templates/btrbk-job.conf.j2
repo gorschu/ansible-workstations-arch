@@ -1,0 +1,12 @@
+timestamp_format long
+transaction_log {{ job.log }}
+
+snapshot_preserve_min {{ job.preserve_min }}
+snapshot_preserve {{ job.preserve }}
+
+volume {{ job.volume_mount }}
+  snapshot_dir snapshots
+  snapshot_create always
+
+  subvolume {{ job.subvolume }}
+    snapshot_name {{ ansible_facts['hostname'] }}_{{ job.name }}

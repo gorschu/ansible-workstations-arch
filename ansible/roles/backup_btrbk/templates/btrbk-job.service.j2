@@ -1,0 +1,10 @@
+[Unit]
+Description=btrbk {{ job.description }}
+Documentation=man:btrbk(1)
+Requires={{ job.volume_mount | to_systemd_mount_unit }}
+After={{ job.volume_mount | to_systemd_mount_unit }}
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/btrbk -c /etc/btrbk/btrbk-{{ job.name }}.conf run
+ExecStartPost=/usr/local/bin/btrbk-update-current {{ job.volume_mount }}/snapshots {{ ansible_facts['hostname'] }}_{{ job.name }}
