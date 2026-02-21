@@ -14,16 +14,16 @@
   extended-status = true
   retry-lock = "30m"
 
-{% for backend in resticprofile_backend_names %}
+{% for backend in backup_resticprofile_backend_names %}
 [workstation-{{ backend }}]
   inherit = "default"
-  repository = "{{ resticprofile_backend_credentials[backend][ansible_facts['hostname']].repository }}"
+  repository = "{{ backup_resticprofile_backend_credentials[backend][ansible_facts['hostname']].repository }}"
   env-file = ["/etc/resticprofile/{{ backend }}.env"]
   initialize = true
   systemd-drop-in-files = ["99-skip-metered.conf"]
 
   [workstation-{{ backend }}.backup]
-    source = {{ resticprofile_backup_sources | to_json }}
+    source = {{ backup_resticprofile_backup_sources | to_json }}
     exclude-file = "/etc/resticprofile/excludes.txt"
     exclude-caches = true
     one-file-system = true

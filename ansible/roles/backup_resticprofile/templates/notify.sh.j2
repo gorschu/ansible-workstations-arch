@@ -3,7 +3,7 @@
 
 # Apprise notification script for resticprofile
 APPRISE=/usr/bin/apprise
-PUSHOVER_URL="pover://{{ resticprofile_pushover_user_key }}@{{ resticprofile_pushover_token }}"
+PUSHOVER_URL="pover://{{ backup_resticprofile_pushover_user_key }}@{{ backup_resticprofile_pushover_token }}"
 
 PROFILE_NAME="${1}"
 PROFILE_COMMAND="${2}"
