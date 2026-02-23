@@ -1,8 +1,13 @@
 ---
-- name: Install batenergy suspend script
+- name: Configure notebook
   become: true
   when: ansible_facts['form_factor'] == "Notebook"
   block:
+    - name: Install notebook packages
+      ansible.builtin.package:
+        name: "{{ notebook_packages }}"
+        state: present
+
     - name: Ensure systemd sleep hook directory exists
       ansible.builtin.file:
         path: /usr/lib/systemd/system-sleep
