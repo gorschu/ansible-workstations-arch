@@ -16,12 +16,6 @@ hyprland_core_packages:
   - hyprpicker
   - hyprpwcenter
   - hyprshot
-  - satty
-  - nwg-look
 
 # Packages that need AUR
-hyprland_aur_packages:
-  - hyprqt6engine
-  - ags-hyprpanel-git
-  - hyprdim
-  - hyprnome
+hyprland_aur_packages: []

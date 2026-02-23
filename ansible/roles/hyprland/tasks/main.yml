@@ -7,7 +7,10 @@
     - name: Install shared Wayland packages
       become: true
       community.general.pacman:
-        name: "{{ wayland_common_packages }}"
+        name: >-
+          {{ wayland_common_packages | difference(['mako'])
+          if dms_state | default('absent') == 'present'
+          else wayland_common_packages }}
         state: present
 
     - name: Install Hyprland core components
@@ -17,6 +20,7 @@
         state: present
 
     - name: Install Hyprland AUR components
+      when: hyprland_aur_packages | length > 0
       become: true
       become_user: "{{ primary_user }}"
       environment:
@@ -24,12 +28,17 @@
       ansible.builtin.command:
         cmd: paru -S --noconfirm --needed {{ hyprland_aur_packages | join(' ') }}
       register: hyprland_paru_result
-      changed_when: "'there is nothing to do' not in hyprland_paru_result.stdout"
+      changed_when: >-
+        'there is nothing to do' not in
+        ((hyprland_paru_result.stdout | default('')
+        ~ hyprland_paru_result.stderr | default(''))
+        | lower)
 
 - name: Hyprland removal
   when: hyprland_state == 'absent'
   block:
     - name: Remove Hyprland AUR components
+      when: hyprland_aur_packages | length > 0
       become: true
       become_user: "{{ primary_user }}"
       environment:
