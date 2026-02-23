@@ -10,6 +10,12 @@
         name: "{{ dms_packages }}"
         state: present
 
+    - name: Remove mako notification daemon (conflicts via D-Bus activation)
+      become: true
+      community.general.pacman:
+        name: mako
+        state: absent
+
     - name: Deploy DMS systemd user service
       become: true
       ansible.builtin.copy:
@@ -22,16 +28,16 @@
       become: true
       become_user: "{{ primary_user }}"
       block:
-        - name: Ensure hyprland-session.service.wants directory exists
+        - name: Ensure wayland-wm@hyprland.desktop.service.wants directory exists
           ansible.builtin.file:
-            path: "{{ primary_user_home }}/.config/systemd/user/hyprland-session.service.wants"
+            path: "{{ primary_user_home }}/.config/systemd/user/wayland-wm@hyprland.desktop.service.wants"
             state: directory
             mode: '0755'
 
         - name: Create DMS service symlink for Hyprland
           ansible.builtin.file:
             src: /usr/lib/systemd/user/dms.service
-            dest: "{{ primary_user_home }}/.config/systemd/user/hyprland-session.service.wants/dms.service"
+            dest: "{{ primary_user_home }}/.config/systemd/user/wayland-wm@hyprland.desktop.service.wants/dms.service"
             state: link
 
     - name: Link DMS to Niri session
@@ -58,7 +64,7 @@
       become: true
       become_user: "{{ primary_user }}"
       ansible.builtin.file:
-        path: "{{ primary_user_home }}/.config/systemd/user/hyprland-session.service.wants/dms.service"
+        path: "{{ primary_user_home }}/.config/systemd/user/wayland-wm@hyprland.desktop.service.wants/dms.service"
         state: absent
 
     - name: Remove DMS Niri wants symlink
