@@ -8,6 +8,7 @@ networking_packages:
   - network-manager-applet
   - wireguard-tools
   - firewalld
+  - systemd-resolvconf
 
 # Host to ping for network connectivity checks
 networking_connectivity_check_host: "1.1.1.1"
