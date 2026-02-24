@@ -8,9 +8,9 @@ echo "==> Installing Ansible collections and roles..."
 ansible-galaxy collection install -r requirements.yml
 ansible-galaxy role install -r requirements.yml
 
-# If 1Password CLI is available and signed in, use it for vault password
-# Otherwise fall back to manual prompt
-if op account list &>/dev/null; then
+# Use op whoami: fails cleanly when not signed in, unlike op account list which
+# returns exit 0 when empty and can block with interactive setup prompts.
+if command -v op &>/dev/null && timeout 5 op whoami </dev/null &>/dev/null; then
   echo "==> Using 1Password for vault password"
   ansible-playbook \
     --vault-password-file <(op read "op://Ansible/vault-workstations/password") \
