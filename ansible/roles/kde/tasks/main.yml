@@ -20,6 +20,15 @@
         name: plasmalogin.service
         enabled: true
 
+    - name: Mask gnome-keyring systemd user units globally (KWallet handles org.freedesktop.secrets)
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        masked: true
+        scope: global
+      loop:
+        - gnome-keyring-daemon.service
+        - gnome-keyring-daemon.socket
+
 - name: Remove KDE Plasma
   when: kde_state == 'absent'
   become: true
@@ -39,3 +48,13 @@
       community.general.pacman:
         name: "{{ kde_packages }}"
         state: absent
+
+    - name: Unmask gnome-keyring systemd user units globally
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        masked: false
+        scope: global
+      loop:
+        - gnome-keyring-daemon.service
+        - gnome-keyring-daemon.socket
+      failed_when: false
