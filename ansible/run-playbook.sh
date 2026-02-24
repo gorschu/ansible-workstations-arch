@@ -8,9 +8,16 @@ echo "==> Installing Ansible collections and roles..."
 ansible-galaxy collection install -r requirements.yml
 ansible-galaxy role install -r requirements.yml
 
-# Use op whoami: fails cleanly when not signed in, unlike op account list which
-# returns exit 0 when empty and can block with interactive setup prompts.
-if command -v op &>/dev/null && timeout 5 op whoami </dev/null &>/dev/null; then
+# Check if op is available and has an active session.
+# Try whoami first; if that fails, attempt a non-interactive signin via app
+# integration (stdin closed so it can't block), then verify with whoami again.
+op_ready() {
+  command -v op &>/dev/null || return 1
+  timeout 5 op whoami </dev/null &>/dev/null && return 0
+  timeout 5 op signin </dev/null &>/dev/null || return 1
+  timeout 5 op whoami </dev/null &>/dev/null
+}
+if op_ready; then
   echo "==> Using 1Password for vault password"
   ansible-playbook \
     --vault-password-file <(op read "op://Ansible/vault-workstations/password") \
