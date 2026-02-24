@@ -26,6 +26,13 @@
         state: started
       loop: "{{ backup_btrbk_jobs | map(attribute='volume_mount') | unique | list }}"
 
+    - name: Refresh mount facts
+      ansible.builtin.setup:
+        gather_subset:
+          - "!all"
+          - "!min"
+          - hardware
+
     - name: Create snapshot subvolumes
       community.general.btrfs_subvolume:
         name: snapshots
