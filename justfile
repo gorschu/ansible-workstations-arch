@@ -4,15 +4,15 @@ default:
 
 ansible_dir := justfile_directory() / "ansible"
 
-# New install: Phase 1 - base + storage (vault-free, TTY)
+[group('setup')]
 phase1:
     "{{ ansible_dir }}/run-playbook.sh" --tags phase1
 
-# New install: Phase 2 - desktop + 1Password (vault-free, needs phase1)
+[group('setup')]
 phase2:
     "{{ ansible_dir }}/run-playbook.sh" --tags phase2
 
-# Full setup (requires 1Password signed in for vault)
+[group('setup')]
 setup *args:
     "{{ ansible_dir }}/run-playbook.sh" {{ args }}
 

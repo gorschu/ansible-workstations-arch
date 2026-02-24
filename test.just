@@ -2,16 +2,16 @@
 # Requires: libvirt, virt-install, virt-viewer, rsync
 # Usage: just spinup → just install <hostname> <disk> → just vm-ansible <hostname>
 
-vm       := "arch-test"
-iso      := justfile_directory() / "archlinux-2026.02.01-x86_64.iso"
-ssh_opts := "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o PubkeyAuthentication=no"
+vm         := "arch-test"
+iso        := justfile_directory() / "archlinux-2026.02.01-x86_64.iso"
+ssh_opts   := "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o PubkeyAuthentication=no"
 remote_dir := "/root/arch"
 
 [private]
 vm-ip:
     @virsh domifaddr {{ vm }} --source leases | awk '/ipv4/ {split($4,a,"/"); print a[1]; exit}'
 
-# Create test VM from ISO
+[group('test')]
 spinup:
     virt-install \
       --name {{ vm }} \
@@ -25,18 +25,18 @@ spinup:
       --noautoconsole
     @echo "VM created — run 'just console' to open the graphical console"
 
-# Open graphical console
+[group('test')]
 console:
     virt-viewer {{ vm }}
 
-# SSH into the VM as root
+[group('test')]
 ssh:
     #!/usr/bin/env bash
     set -euo pipefail
     IP=$(just vm-ip)
     ssh {{ ssh_opts }} "root@${IP}"
 
-# Sync install scripts to the VM
+[group('test')]
 sync:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -51,7 +51,7 @@ sync:
       "{{ justfile_directory() }}/" \
       "root@${IP}:{{ remote_dir }}/"
 
-# Sync + run arch-install.sh in the VM
+[group('test')]
 install *args:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -59,7 +59,7 @@ install *args:
     IP=$(just vm-ip)
     ssh {{ ssh_opts }} "root@${IP}" "{{ remote_dir }}/arch-install.sh {{ args }}"
 
-# Run the ansible playbook against the VM
+[group('test')]
 vm-ansible hostname *args:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -75,7 +75,7 @@ vm-ansible hostname *args:
       --ask-pass \
       {{ args }}
 
-# Destroy the test VM and its disk
+[group('test')]
 destroy:
     #!/usr/bin/env bash
     virsh destroy {{ vm }} 2>/dev/null || true
