@@ -16,7 +16,6 @@ kde_state: absent
 wayland_common_packages:
   - udiskie
   - pinentry
-  - shikane
   - hyprpaper
   - hypridle
   - hyprlock
