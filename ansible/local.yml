@@ -9,37 +9,41 @@
   # group_vars/all/main.yml and host_vars/ auto-loaded by Ansible
   # vault.yml loaded by roles that need it (networking, resticprofile)
 
+  # Phase tags for new installs (see README.md):
+  #   phase1 - base + storage, vault-free, TTY only
+  #   phase2 - desktop + 1Password, vault-free (needs phase1 first)
+  #   phase3 - networking + backup, requires 1Password signed in (vault)
   roles:
     - role: base
-      tags: [base]
+      tags: [base, phase1]
     - role: networking
-      tags: [networking, tailscale]
+      tags: [networking, tailscale, phase3]
     - role: onepassword
-      tags: [onepassword, desktop]
+      tags: [onepassword, desktop, phase2]
     - role: notebook
-      tags: [notebook, power]
+      tags: [notebook, power, phase1]
     - role: desktop
-      tags: [desktop, gui, ghostty, vscode, beyondcompare]
+      tags: [desktop, gui, ghostty, vscode, beyondcompare, phase2]
     - role: gnome
-      tags: [gnome, desktop]
+      tags: [gnome, desktop, phase2]
     - role: kde
-      tags: [kde, desktop]
+      tags: [kde, desktop, phase2]
     - role: multimedia
-      tags: [multimedia, codecs]
+      tags: [multimedia, codecs, phase2]
     - role: hyprland
-      tags: [hyprland, wayland]
+      tags: [hyprland, wayland, phase2]
     - role: niri
-      tags: [niri, wayland]
+      tags: [niri, wayland, phase2]
     - role: dms
-      tags: [dms, wayland]
+      tags: [dms, wayland, phase2]
     - role: storage_zfs
-      tags: [zfs, zrepl, storage]
+      tags: [zfs, zrepl, storage, phase1]
     - role: storage_btrfs
-      tags: [storage, btrfs, data]
+      tags: [storage, btrfs, data, phase1]
     - role: backup_btrbk
-      tags: [btrbk, storage, backup]
+      tags: [btrbk, storage, backup, phase1]
     - role: backup_resticprofile
-      tags: [resticprofile, backup]
+      tags: [resticprofile, backup, phase3]
     - role: virtualization
-      tags: [virtualization, incus, docker, podman, containers]
+      tags: [virtualization, incus, docker, podman, containers, phase2]
 # vim: set ft=yaml.ansible:

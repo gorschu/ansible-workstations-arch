@@ -244,7 +244,8 @@ pacstrap /mnt \
   terminus-font \
   python \
   cachyos-settings cachyos-rate-mirrors \
-  sudo neovim git
+  sudo neovim git \
+  just ansible
 
 # Generate fstab
 genfstab -U /mnt >>/mnt/etc/fstab
@@ -278,7 +279,7 @@ options rd.luks.name=${ROOT_LUKS_UUID}=${ROOT_LUKS_NAME} rd.luks.name=${DATA_LUK
 EOF
 
 # Chroot and finish setup
-arch-chroot /mnt /bin/bash <<CHROOT
+if ! arch-chroot /mnt /bin/bash <<CHROOT
 set -euo pipefail
 
 # Locale
@@ -323,8 +324,7 @@ systemctl enable systemd-resolved
 systemctl enable systemd-timesyncd
 systemctl enable fstrim.timer
 CHROOT
-
-if [[ $? -ne 0 ]]; then
+then
   echo "ERROR: chroot failed — check output above."
   exit 1
 fi
