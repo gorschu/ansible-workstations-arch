@@ -5,4 +5,5 @@
 dms_state: absent
 
 dms_packages:
-  - dms-shell
+  - quickshell-git
+  - dms-shell-bin

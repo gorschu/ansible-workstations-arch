@@ -1,14 +1,22 @@
 ---
-# DankMaterialShell desktop shell (chaotic-aur)
+# DankMaterialShell desktop shell (AUR)
 
 - name: Install DankMaterialShell
   when: dms_state == 'present'
   block:
     - name: Install DankMaterialShell packages
       become: true
-      community.general.pacman:
-        name: "{{ dms_packages }}"
-        state: present
+      become_user: "{{ primary_user }}"
+      environment:
+        HOME: "{{ primary_user_home }}"
+      ansible.builtin.command:
+        cmd: paru -S --noconfirm --needed {{ dms_packages | join(' ') }}
+      register: dms_paru_result
+      changed_when: >-
+        'there is nothing to do' not in
+        ((dms_paru_result.stdout | default('')
+        ~ dms_paru_result.stderr | default(''))
+        | lower)
 
     - name: Remove mako notification daemon (conflicts via D-Bus activation)
       become: true
@@ -23,57 +31,10 @@
         dest: /usr/lib/systemd/user/dms.service
         mode: '0644'
 
-    - name: Link DMS to Hyprland session
-      when: hyprland_state | default('absent') == 'present'
-      become: true
-      become_user: "{{ primary_user }}"
-      block:
-        - name: Ensure wayland-wm@hyprland.desktop.service.wants directory exists
-          ansible.builtin.file:
-            path: "{{ primary_user_home }}/.config/systemd/user/wayland-wm@hyprland.desktop.service.wants"
-            state: directory
-            mode: '0755'
-
-        - name: Create DMS service symlink for Hyprland
-          ansible.builtin.file:
-            src: /usr/lib/systemd/user/dms.service
-            dest: "{{ primary_user_home }}/.config/systemd/user/wayland-wm@hyprland.desktop.service.wants/dms.service"
-            state: link
-
-    - name: Link DMS to Niri session
-      when: niri_state | default('absent') == 'present'
-      become: true
-      become_user: "{{ primary_user }}"
-      block:
-        - name: Ensure niri.service.wants directory exists
-          ansible.builtin.file:
-            path: "{{ primary_user_home }}/.config/systemd/user/niri.service.wants"
-            state: directory
-            mode: '0755'
-
-        - name: Create DMS service symlink for Niri
-          ansible.builtin.file:
-            src: /usr/lib/systemd/user/dms.service
-            dest: "{{ primary_user_home }}/.config/systemd/user/niri.service.wants/dms.service"
-            state: link
 
 - name: Remove DankMaterialShell
   when: dms_state == 'absent'
   block:
-    - name: Remove DMS Hyprland wants symlink
-      become: true
-      become_user: "{{ primary_user }}"
-      ansible.builtin.file:
-        path: "{{ primary_user_home }}/.config/systemd/user/wayland-wm@hyprland.desktop.service.wants/dms.service"
-        state: absent
-
-    - name: Remove DMS Niri wants symlink
-      become: true
-      become_user: "{{ primary_user }}"
-      ansible.builtin.file:
-        path: "{{ primary_user_home }}/.config/systemd/user/niri.service.wants/dms.service"
-        state: absent
-
     - name: Remove DMS systemd user service
       become: true
       ansible.builtin.file:
@@ -82,6 +43,10 @@
 
     - name: Remove DankMaterialShell packages
       become: true
-      community.general.pacman:
-        name: "{{ dms_packages }}"
-        state: absent
+      become_user: "{{ primary_user }}"
+      environment:
+        HOME: "{{ primary_user_home }}"
+      ansible.builtin.command:
+        cmd: paru -Rns --noconfirm {{ dms_packages | join(' ') }}
+      register: dms_paru_remove_result
+      changed_when: dms_paru_remove_result.rc == 0
