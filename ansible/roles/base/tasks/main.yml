@@ -21,6 +21,10 @@
   ansible.builtin.import_tasks: paru_sudo.yml
   tags: paru_sudo
 
+- name: Configure pacman
+  ansible.builtin.import_tasks: pacman.yml
+  tags: pacman
+
 - name: Configure base sysctl settings
   ansible.builtin.import_tasks: sysctl.yml
   tags: sysctl

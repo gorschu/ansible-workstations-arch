@@ -1,0 +1,14 @@
+---
+- name: Configure pacman options
+  become: true
+  ansible.builtin.lineinfile:
+    path: /etc/pacman.conf
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+    backrefs: true
+  loop:
+    - {regexp: '^#?(Color)', line: 'Color'}
+    - {regexp: '^#?(ILoveCandy)', line: 'ILoveCandy'}
+    - {regexp: '^#?(VerbosePkgLists)', line: 'VerbosePkgLists'}
+    - {regexp: '^#?(PrettyProgressBar)', line: 'PrettyProgressBar'}
+    - {regexp: '^#?ParallelDownloads\s*=.*', line: 'ParallelDownloads = 10'}
