@@ -16,6 +16,7 @@ networking_tailscale_state: present
 
 # virtualization
 virtualization_libvirt_state: present
+virtualization_incus_state: present
 
 # filesystems
 storage_zfs_state: absent
