@@ -1,0 +1,25 @@
+---
+# Google Chrome (AUR: google-chrome)
+
+- name: Install Google Chrome
+  when: desktop_chrome_state == 'present'
+  become: true
+  become_user: "{{ primary_user }}"
+  environment:
+    HOME: "{{ primary_user_home }}"
+  ansible.builtin.command:
+    cmd: paru -S --noconfirm --needed google-chrome
+  register: desktop_chrome_paru_result
+  changed_when: "'there is nothing to do' not in desktop_chrome_paru_result.stdout"
+
+- name: Remove Google Chrome
+  when: desktop_chrome_state == 'absent'
+  become: true
+  become_user: "{{ primary_user }}"
+  environment:
+    HOME: "{{ primary_user_home }}"
+  ansible.builtin.command:
+    cmd: paru -Rns --noconfirm google-chrome
+  register: desktop_chrome_paru_remove
+  changed_when: desktop_chrome_paru_remove.rc == 0
+  failed_when: false

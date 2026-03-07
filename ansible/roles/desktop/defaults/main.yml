@@ -13,3 +13,5 @@ desktop_support_applications:
 desktop_ghostty_state: absent
 desktop_vscode_state: present
 desktop_beyondcompare_state: absent
+desktop_chrome_state: present
+desktop_vivaldi_state: present

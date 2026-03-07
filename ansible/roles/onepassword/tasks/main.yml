@@ -28,6 +28,26 @@
       register: onepassword_paru_result
       changed_when: "'there is nothing to do' not in onepassword_paru_result.stdout"
 
+    - name: Ensure 1Password configuration directory exists
+      become: true
+      ansible.builtin.file:
+        path: /etc/1password
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+      when: onepassword_custom_allowed_browsers | length > 0
+
+    - name: Configure custom allowed browsers for 1Password
+      become: true
+      ansible.builtin.copy:
+        dest: /etc/1password/custom_allowed_browsers
+        content: "{{ onepassword_custom_allowed_browsers | join('\n') }}\n"
+        owner: root
+        group: root
+        mode: "0644"
+      when: onepassword_custom_allowed_browsers | length > 0
+
 - name: Remove 1Password
   when: onepassword_state == 'absent'
   become: true

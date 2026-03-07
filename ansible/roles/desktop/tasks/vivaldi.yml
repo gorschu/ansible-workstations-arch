@@ -1,0 +1,20 @@
+---
+# Vivaldi (extra: vivaldi, vivaldi-ffmpeg-codecs)
+
+- name: Install Vivaldi
+  when: desktop_vivaldi_state == 'present'
+  become: true
+  community.general.pacman:
+    name:
+      - vivaldi
+      - vivaldi-ffmpeg-codecs
+    state: present
+
+- name: Remove Vivaldi
+  when: desktop_vivaldi_state == 'absent'
+  become: true
+  community.general.pacman:
+    name:
+      - vivaldi
+      - vivaldi-ffmpeg-codecs
+    state: absent

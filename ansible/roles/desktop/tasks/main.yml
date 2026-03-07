@@ -21,6 +21,14 @@
   ansible.builtin.import_tasks: vscode.yml
   tags: [vscode]
 
+- name: Configure Google Chrome
+  ansible.builtin.import_tasks: chrome.yml
+  tags: [chrome]
+
+- name: Configure Vivaldi
+  ansible.builtin.import_tasks: vivaldi.yml
+  tags: [vivaldi]
+
 - name: Configure Beyond Compare
   ansible.builtin.import_tasks: beyondcompare.yml
   tags: [beyondcompare]
