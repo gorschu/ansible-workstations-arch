@@ -5,6 +5,8 @@ desktop_gui_applications:
   - kitty
   - vicinae
   - qutebrowser
+  - insync
+  - insync-dolphin
 
 desktop_support_applications:
   - wl-clipboard
