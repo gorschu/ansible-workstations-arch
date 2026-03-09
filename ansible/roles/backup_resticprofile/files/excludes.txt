@@ -1,6 +1,9 @@
 # linuxbrew
 /home/linuxbrew/
 
+# Cloud mounts
+Cloud
+
 # Large media files
 *.iso
 *.qcow2
