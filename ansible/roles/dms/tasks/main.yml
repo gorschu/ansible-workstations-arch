@@ -50,3 +50,4 @@
         cmd: paru -Rns --noconfirm {{ dms_packages | join(' ') }}
       register: dms_paru_remove_result
       changed_when: dms_paru_remove_result.rc == 0
+      failed_when: false
