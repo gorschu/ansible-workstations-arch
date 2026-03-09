@@ -12,12 +12,11 @@
   # Phase tags for new installs (see README.md):
   #   phase1 - base + storage, vault-free, TTY only
   #   phase2 - desktop + 1Password, vault-free (needs phase1 first)
-  #   phase3 - networking + backup, requires 1Password signed in (vault)
   roles:
     - role: base
       tags: [base, phase1]
     - role: networking
-      tags: [networking, tailscale, phase3]
+      tags: [networking, tailscale]
     - role: onepassword
       tags: [onepassword, desktop, phase2]
     - role: notebook
@@ -43,7 +42,7 @@
     - role: backup_btrbk
       tags: [btrbk, storage, backup, phase1]
     - role: backup_resticprofile
-      tags: [resticprofile, backup, phase3]
+      tags: [resticprofile, backup]
     - role: virtualization
-      tags: [virtualization, incus, docker, podman, containers, phase3]
+      tags: [virtualization, incus, docker, podman, containers]
 # vim: set ft=yaml.ansible:
