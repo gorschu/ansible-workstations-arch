@@ -13,6 +13,17 @@
     - {path: /etc/resticprofile/hooks, mode: "0700"}
     - {path: /var/lib/resticprofile, mode: "0755"}
 
+- name: Assert vault credentials are defined for this host
+  ansible.builtin.assert:
+    that:
+      - vault_resticprofile_backends is defined
+      - >-
+        vault_resticprofile_backends | dict2items | map(attribute='value')
+        | selectattr(ansible_facts['hostname'], 'defined') | list | length > 0
+    fail_msg: >-
+      vault_resticprofile_backends is not defined or contains no entry for host
+      '{{ ansible_facts['hostname'] }}'. Add credentials to the vault before running this role.
+
 - name: Set resticprofile credentials from vault
   ansible.builtin.set_fact:
     backup_resticprofile_backend_credentials: "{{ vault_resticprofile_backends }}"
