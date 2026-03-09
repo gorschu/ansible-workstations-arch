@@ -2,7 +2,7 @@
 id=wg-warp
 type=wireguard
 interface-name=wg-warp
-autoconnect=false
+autoconnect=true
 
 [wireguard]
 private-key={{ vault_networking_warp[inventory_hostname].private_key }}
