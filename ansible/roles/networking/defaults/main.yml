@@ -28,3 +28,6 @@ networking_wireguard_home_enabled: true
 networking_tailscale_state: present
 # Accept routes from other devices
 networking_tailscale_accept_routes: true
+# AUR packages for Tailscale GUI (ktailctl requires operator to be set)
+networking_tailscale_aur_packages:
+  - ktailctl

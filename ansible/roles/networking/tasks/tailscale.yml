@@ -15,14 +15,47 @@
         tailscale_tags:
           - "workstation"
         tailscale_oauth_ephemeral: false
+        tailscale_operator: "{{ primary_user }}"
         tailscale_args: >-
           --hostname={{ inventory_hostname }}
           --accept-routes={{ 'true' if networking_tailscale_accept_routes else 'false' }}
+
+    - name: Ensure operator is set
+      ansible.builtin.command:
+        cmd: tailscale set --operator={{ primary_user }}
+      changed_when: false
+
+    - name: Install Tailscale AUR packages
+      when: networking_tailscale_aur_packages | length > 0
+      become: true
+      become_user: "{{ primary_user }}"
+      environment:
+        HOME: "{{ primary_user_home }}"
+      ansible.builtin.command:
+        cmd: paru -S --noconfirm --needed {{ networking_tailscale_aur_packages | join(' ') }}
+      register: networking_tailscale_paru_result
+      changed_when: >-
+        'there is nothing to do' not in
+        ((networking_tailscale_paru_result.stdout | default('')
+        ~ networking_tailscale_paru_result.stderr | default(''))
+        | lower)
 
 - name: Remove Tailscale
   when: networking_tailscale_state == 'absent'
   become: true
   block:
+    - name: Remove Tailscale AUR packages
+      when: networking_tailscale_aur_packages | length > 0
+      become: true
+      become_user: "{{ primary_user }}"
+      environment:
+        HOME: "{{ primary_user_home }}"
+      ansible.builtin.command:
+        cmd: paru -Rns --noconfirm {{ networking_tailscale_aur_packages | join(' ') }}
+      register: networking_tailscale_paru_remove
+      changed_when: networking_tailscale_paru_remove.rc == 0
+      failed_when: false
+
     - name: Uninstall Tailscale
       ansible.builtin.include_role:
         name: artis3n.tailscale.machine
