@@ -19,6 +19,7 @@
         tailscale_args: >-
           --hostname={{ inventory_hostname }}
           --accept-routes={{ 'true' if networking_tailscale_accept_routes else 'false' }}
+          --operator={{ primary_user }}
 
     - name: Ensure operator is set
       ansible.builtin.command:
