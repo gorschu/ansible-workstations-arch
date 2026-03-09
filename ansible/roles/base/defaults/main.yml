@@ -17,6 +17,7 @@ base_cli_utils:
   - libarchive
   - gnupg
   - python-gpgme
+  - mtr
 
 base_tuned_packages:
   - tuned
