@@ -1,0 +1,26 @@
+---
+# Cloudflare WARP WireGuard configuration
+
+- name: Configure Cloudflare WARP
+  when:
+    - networking_warp_state == 'present'
+    - vault_networking_warp is defined
+    - inventory_hostname in vault_networking_warp
+  become: true
+  block:
+    - name: Deploy WARP WireGuard connection
+      ansible.builtin.template:
+        src: wg-warp.nmconnection.j2
+        dest: /etc/NetworkManager/system-connections/wg-warp.nmconnection
+        mode: "0600"
+        owner: root
+        group: root
+      notify: Reload NetworkManager
+
+    - name: Deploy wgcf account file
+      ansible.builtin.template:
+        src: wgcf-account.toml.j2
+        dest: /etc/wireguard/wgcf-account.toml
+        mode: "0600"
+        owner: root
+        group: root

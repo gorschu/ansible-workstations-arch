@@ -46,6 +46,10 @@
   ansible.builtin.import_tasks: wireguard.yml
   tags: [wireguard, vpn]
 
+- name: Configure Cloudflare WARP
+  ansible.builtin.import_tasks: warp.yml
+  tags: [warp, vpn]
+
 - name: Configure Tailscale
   ansible.builtin.import_tasks: tailscale.yml
   tags: [tailscale, vpn]

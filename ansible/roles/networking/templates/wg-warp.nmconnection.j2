@@ -1,0 +1,35 @@
+[connection]
+id=wg-warp
+type=wireguard
+interface-name=wg-warp
+autoconnect=false
+
+[wireguard]
+private-key={{ vault_networking_warp[inventory_hostname].private_key }}
+mtu=1280
+
+[wireguard-peer.{{ vault_networking_warp[inventory_hostname].peer_public_key }}]
+endpoint={{ vault_networking_warp[inventory_hostname].endpoint }}
+allowed-ips=0.0.0.0/0;::/0;
+
+[ipv4]
+address1={{ vault_networking_warp[inventory_hostname].address_ipv4 }}
+method=manual
+{% if networking_warp_cloudflare_dns %}
+dns=1.1.1.1;1.0.0.1;
+{% endif %}
+{% for subnet in networking_warp_lan_subnets_ipv4 %}
+routing-rule{{ loop.index }}=priority 10 to {{ subnet }} table 254
+{% endfor %}
+
+[ipv6]
+address1={{ vault_networking_warp[inventory_hostname].address_ipv6 }}
+method=manual
+{% if networking_warp_cloudflare_dns %}
+dns=2606:4700:4700::1111;2606:4700:4700::1001;
+{% endif %}
+{% for subnet in networking_warp_lan_subnets_ipv6 %}
+routing-rule{{ loop.index }}=priority 10 to {{ subnet }} table 254
+{% endfor %}
+
+[proxy]

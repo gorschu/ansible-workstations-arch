@@ -24,6 +24,14 @@ networking_wifi_interface_pattern: '^wl'
 # Set to true to fetch wg-home.conf from 1Password and configure the VPN
 networking_wireguard_home_enabled: true
 
+# Cloudflare WARP configuration
+networking_warp_state: absent
+# Override DNS to Cloudflare's resolvers for the WARP interface (breaks internal DNS, off by default)
+networking_warp_cloudflare_dns: false
+# LAN subnets to exclude from the WARP tunnel via routing rules (routed via main table instead)
+networking_warp_lan_subnets_ipv4: []
+networking_warp_lan_subnets_ipv6: []
+
 # Tailscale configuration
 networking_tailscale_state: present
 # Accept routes from other devices
