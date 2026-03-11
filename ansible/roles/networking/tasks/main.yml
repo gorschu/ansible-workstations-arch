@@ -28,6 +28,26 @@
     enabled: true
     state: started
 
+- name: Assign trusted subnets to home zone
+  become: true
+  ansible.posix.firewalld:
+    source: "{{ item }}"
+    zone: home
+    permanent: true
+    state: enabled
+    immediate: true
+  loop: "{{ networking_firewalld_home_sources }}"
+
+- name: Enable services in home zone
+  become: true
+  ansible.posix.firewalld:
+    service: "{{ item }}"
+    zone: home
+    permanent: true
+    state: enabled
+    immediate: true
+  loop: "{{ networking_firewalld_home_services }}"
+
 - name: Load vault secrets
   ansible.builtin.include_vars:
     file: "{{ playbook_dir }}/vault.yml"

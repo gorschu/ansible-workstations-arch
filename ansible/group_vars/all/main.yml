@@ -23,6 +23,13 @@ wayland_common_packages:
   - cliphist
   - waybar
 
+# Firewalld home zone - trusted LAN subnets and services
+networking_firewalld_home_sources:
+  - "172.29.50.0/23"
+  - "fd6a:7581:f7b::/64"
+networking_firewalld_home_services:
+  - kdeconnect
+
 # Cloudflare WARP - LAN subnets excluded from tunnel via routing rules
 networking_warp_lan_subnets_ipv4:
   - "172.29.50.0/23"

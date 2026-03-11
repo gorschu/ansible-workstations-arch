@@ -6,14 +6,15 @@ kde_packages:
 
 # KDE applications
 kde_applications:
-  - dolphin
-  - konsole
-  - krdc
   - ark
-  - spectacle
-  - okular
+  - dolphin
   - gwenview
   - kate
+  - kdeconnect
+  - konsole
+  - krdc
   - kwallet
   - kwallet-pam
   - kwalletmanager
+  - okular
+  - spectacle

@@ -32,6 +32,10 @@ networking_warp_cloudflare_dns: false
 networking_warp_lan_subnets_ipv4: []
 networking_warp_lan_subnets_ipv6: []
 
+# Firewalld home zone - trusted LAN subnets and services
+networking_firewalld_home_sources: []
+networking_firewalld_home_services: []
+
 # Tailscale configuration
 networking_tailscale_state: present
 # Accept routes from other devices

@@ -34,6 +34,7 @@
         autoconnect_priority: 10
         method4: auto
         method6: auto
+        zone: "{{ item.0.value.zone | default(omit) }}"
         state: present
       loop: >-
         {{ vault_networking_wifi_networks | dict2items
