@@ -1,0 +1,68 @@
+---
+# CUPS printing
+
+- name: Install CUPS packages
+  become: true
+  community.general.pacman:
+    name: "{{ printing_packages }}"
+    state: present
+
+- name: Set default paper size to A4
+  become: true
+  ansible.builtin.copy:
+    content: "a4\n"
+    dest: /etc/papersize
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Enable CUPS socket activation
+  become: true
+  ansible.builtin.systemd_service:
+    name: cups.socket
+    enabled: true
+    state: started
+
+- name: Start CUPS service for configuration
+  become: true
+  ansible.builtin.systemd_service:
+    name: cups.service
+    state: started
+
+- name: Check existing printers
+  ansible.builtin.command:
+    cmd: lpstat -p "{{ item.name }}"
+  loop: "{{ printing_printers }}"
+  register: printing_lpstat
+  changed_when: false
+  failed_when: false
+
+- name: Add printers
+  become: true
+  ansible.builtin.command:
+    cmd: >-
+      lpadmin -p "{{ item.item.name }}"
+      -E
+      -v "{{ item.item.uri }}"
+      -m "{{ item.item.model | default('everywhere') }}"
+      -D "{{ item.item.description | default(item.item.name) }}"
+  loop: "{{ printing_lpstat.results }}"
+  when: item.rc != 0
+  changed_when: true
+
+- name: Get current default printer
+  ansible.builtin.command:
+    cmd: lpstat -d
+  register: printing_current_default
+  changed_when: false
+  failed_when: false
+
+- name: Set default printer
+  become: true
+  ansible.builtin.command:
+    cmd: lpadmin -d "{{ item.name }}"
+  loop: "{{ printing_printers }}"
+  when:
+    - item.default | default(false)
+    - item.name not in printing_current_default.stdout
+  changed_when: true

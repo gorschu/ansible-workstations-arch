@@ -17,4 +17,5 @@ kde_applications:
   - kwallet-pam
   - kwalletmanager
   - okular
+  - print-manager
   - spectacle

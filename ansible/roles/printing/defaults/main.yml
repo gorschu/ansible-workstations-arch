@@ -1,0 +1,16 @@
+---
+# Printing role defaults
+
+printing_packages:
+  - cups
+  - cups-filters
+  - ghostscript
+
+# Printers to configure automatically
+# Each entry:
+#   name:        CUPS queue name (no spaces)
+#   uri:         device URI (e.g. ipp://host/ipp/print)
+#   description: human-readable printer name
+#   model:       PPD model - use 'everywhere' for driverless IPP
+#   default:     set as system default printer (optional, default false)
+printing_printers: []

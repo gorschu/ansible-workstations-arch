@@ -43,6 +43,8 @@
       tags: [btrbk, storage, backup, phase1]
     - role: backup_resticprofile
       tags: [resticprofile, backup]
+    - role: printing
+      tags: [printing, cups]
     - role: virtualization
       tags: [virtualization, incus, docker, podman, containers]
 # vim: set ft=yaml.ansible:
