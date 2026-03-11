@@ -28,6 +28,7 @@ storage_btrfs_top_mount_options: "subvolid=5,relatime"
 # Detailed structure and symlinks are owned by chezmoi user-tmpfiles.d.
 storage_btrfs_data_directories:
   - {path: general, mode: "0700"}
+  - {path: general/flatpak, mode: "0700"}
   - {path: projects, mode: "0700"}
   - {path: media, mode: "0700"}
   - {path: mail, mode: "0700"}
