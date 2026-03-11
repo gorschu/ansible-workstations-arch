@@ -8,6 +8,7 @@ kde_packages:
 kde_applications:
   - dolphin
   - konsole
+  - krdc
   - ark
   - spectacle
   - okular
