@@ -1,0 +1,14 @@
+[Unit]
+Description=Bind flatpak app data from data partition for {{ primary_user }}
+After=home-{{ primary_user }}-data.mount
+RequiresMountsFor={{ storage_btrfs_mountpoint }}
+
+[Mount]
+What={{ storage_btrfs_mountpoint }}/general/flatpak
+Where={{ primary_user_home }}/.var
+Type=none
+Options=bind
+DirectoryMode=0700
+
+[Install]
+WantedBy=local-fs.target

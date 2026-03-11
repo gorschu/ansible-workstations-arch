@@ -100,6 +100,30 @@
         mode: "{{ item.mode }}"
       loop: "{{ storage_btrfs_data_directories }}"
 
+    - name: Ensure ~/.var mount point exists
+      ansible.builtin.file:
+        path: "{{ primary_user_home }}/.var"
+        state: directory
+        owner: "{{ primary_user }}"
+        group: "{{ primary_user }}"
+        mode: "0700"
+
+    - name: Deploy ~/.var bind mount unit
+      ansible.builtin.template:
+        src: home-primary-user-dot-var.mount.j2
+        dest: "/etc/systemd/system/home-{{ primary_user }}-.var.mount"
+        mode: "0644"
+      notify: Systemd daemon-reload
+
+    - name: Flush handlers to reload systemd
+      ansible.builtin.meta: flush_handlers
+
+    - name: Enable and start ~/.var bind mount
+      ansible.builtin.systemd_service:
+        name: "home-{{ primary_user }}-.var.mount"
+        enabled: true
+        state: started
+
 - name: Remove Btrfs data mounts
   when: storage_btrfs_state == 'absent'
   become: true
@@ -110,6 +134,7 @@
         enabled: false
         state: stopped
       loop:
+        - "home-{{ primary_user }}-.var.mount"
         - "home-{{ primary_user }}-data.mount"
         - mnt-btrfs_data.mount
         - mnt-btrfs_root.mount
@@ -120,6 +145,7 @@
         path: "{{ item }}"
         state: absent
       loop:
+        - "/etc/systemd/system/home-{{ primary_user }}-.var.mount"
         - "/etc/systemd/system/home-{{ primary_user }}-data.mount"
         - /etc/systemd/system/mnt-btrfs_data.mount
         - /etc/systemd/system/mnt-btrfs_root.mount
