@@ -1,0 +1,67 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:best-practices",
+    ":enablePreCommit"
+  ],
+  "prConcurrentLimit": 3,
+  "prHourlyLimit": 2,
+  "labels": [
+    "dependencies"
+  ],
+  "reviewersFromCodeOwners": true,
+  "assigneesFromCodeOwners": true,
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Update GitHub release versions in versions-*.toml files",
+      "managerFilePatterns": [
+        "/^\\.chezmoitemplates/externals/versions-.+\\.toml$/"
+      ],
+      "matchStrings": [
+        "\\s*[a-zA-Z0-9_-]+\\s*=\\s*\"(?<currentValue>[^\"]+)\"\\s*#\\s*renovate:\\s*datasource=(?<datasource>[a-z-]+)\\s+depName=(?<depName>[^\\s]+)"
+      ]
+    },
+    {
+      "customType": "regex",
+      "description": "Update mise.toml tools with inline renovate annotations",
+      "managerFilePatterns": [
+        "/^\\.mise\\.toml$/"
+      ],
+      "matchStrings": [
+        "\\s*[a-zA-Z0-9_-]+\\s*=\\s*\"(?<currentValue>[^\"]+)\"\\s*#\\s*renovate:\\s*datasource=(?<datasource>[a-z-]+)\\s+depName=(?<depName>[^\\s]+)"
+      ]
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "Group pre-commit hook updates",
+      "matchManagers": [
+        "pre-commit"
+      ],
+      "groupName": "pre-commit-hooks",
+      "semanticCommitType": "chore",
+      "semanticCommitScope": "deps",
+      "minimumReleaseAge": "3 days"
+    },
+    {
+      "description": "Group docker minor/major updates",
+      "matchManagers": [
+        "dockerfile"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "major"
+      ],
+      "groupName": "container-images",
+      "semanticCommitType": "feat",
+      "semanticCommitScope": "deps",
+      "minimumReleaseAge": "3 days"
+    }
+  ],
+  "vulnerabilityAlerts": {
+    "semanticCommitType": "fix",
+    "semanticCommitScope": "security"
+  },
+  "osvVulnerabilityAlerts": true
+}
