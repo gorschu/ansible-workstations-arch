@@ -15,8 +15,6 @@
   roles:
     - role: base
       tags: [base, phase1]
-    - role: networking
-      tags: [networking, tailscale]
     - role: onepassword
       tags: [onepassword, desktop, phase2]
     - role: notebook
@@ -35,6 +33,8 @@
       tags: [niri, wayland, phase2]
     - role: dms
       tags: [dms, wayland, phase2]
+    - role: networking
+      tags: [networking, tailscale]
     - role: storage_zfs
       tags: [zfs, zrepl, storage, phase1]
     - role: storage_btrfs
