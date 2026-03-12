@@ -2,8 +2,8 @@
 # desktop
 kde_state: present
 gnome_state: absent
-hyprland_state: present
-dms_state: present
+hyprland_state: absent
+dms_state: absent
 
 backup_resticprofile_state: present
 backup_resticprofile_backup_sources:
@@ -13,6 +13,7 @@ backup_resticprofile_backup_sources:
 
 # network
 networking_tailscale_state: present
+networking_warp_state: present
 
 # virtualization
 virtualization_libvirt_state: present
