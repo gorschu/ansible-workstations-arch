@@ -6,7 +6,7 @@ experimental = true
 pipx.uvx = true
 
 [tools]
-prek = "0.2"                   # renovate: datasource=github-releases depName=j178/prek
+prek = "v0.3.5"                   # renovate: datasource=github-releases depName=j178/prek
 ansible = "13.1"               # renovate: datasource=github-releases depName=ansible/ansible
 pipx = "latest"
 uv = "latest"
