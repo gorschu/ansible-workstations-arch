@@ -12,6 +12,13 @@
     cmd: pacman-key --lsign-key {{ base_chaotic_aur_key }}
   changed_when: false
 
+- name: Check if chaotic-aur keyring and mirrorlist are installed
+  ansible.builtin.command:
+    cmd: pacman -Q chaotic-keyring chaotic-mirrorlist
+  register: base_chaotic_pkgs_check
+  changed_when: false
+  failed_when: false
+
 - name: Install chaotic-aur keyring and mirrorlist
   become: true
   community.general.pacman:
@@ -19,6 +26,7 @@
       - "https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst"
       - "https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst"
     state: present
+  when: base_chaotic_pkgs_check.rc != 0
 
 - name: Add chaotic-aur repo to pacman.conf
   become: true

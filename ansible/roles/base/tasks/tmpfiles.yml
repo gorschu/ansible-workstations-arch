@@ -1,7 +1,14 @@
 ---
+- name: Ensure /usr/lib/user-tmpfiles.d exists
+  become: true
+  ansible.builtin.file:
+    path: /usr/lib/user-tmpfiles.d
+    state: directory
+    mode: "0755"
+
 - name: Deploy user tmpdir tmpfiles.d rule
   become: true
   ansible.builtin.copy:
     src: tmpfiles.d/user-tmpdir.conf
-    dest: /etc/tmpfiles.d/user-tmpdir.conf
+    dest: /usr/lib/user-tmpfiles.d/user-tmpdir.conf
     mode: "0644"
