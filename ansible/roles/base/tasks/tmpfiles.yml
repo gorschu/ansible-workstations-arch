@@ -1,0 +1,7 @@
+---
+- name: Deploy user tmpdir tmpfiles.d rule
+  become: true
+  ansible.builtin.copy:
+    src: tmpfiles.d/user-tmpdir.conf
+    dest: /etc/tmpfiles.d/user-tmpdir.conf
+    mode: "0644"

@@ -5,6 +5,10 @@
   ansible.builtin.import_tasks: user.yml
   tags: user
 
+- name: Configure tmpfiles.d rules
+  ansible.builtin.import_tasks: tmpfiles.yml
+  tags: tmpfiles
+
 - name: Configure security settings
   ansible.builtin.import_tasks: security.yml
   tags: security
