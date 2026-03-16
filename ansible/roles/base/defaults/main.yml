@@ -19,6 +19,7 @@ base_cli_utils:
   - python-gpgme
   - man
   - mtr
+  - bc
 
 base_tuned_packages:
   - tuned
