@@ -8,6 +8,7 @@ base_system_utils:
   - gdisk
   - parted
   - dmidecode
+  - geoclue
 
 base_cli_utils:
   - pkgfile
