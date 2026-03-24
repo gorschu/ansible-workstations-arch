@@ -33,6 +33,10 @@
   ansible.builtin.import_tasks: sysctl.yml
   tags: sysctl
 
+- name: Configure zswap settings
+  ansible.builtin.import_tasks: zswap.yml
+  tags: zswap
+
 - name: Configure firmware update tooling
   ansible.builtin.import_tasks: fwupd.yml
   tags: fwupd

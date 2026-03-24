@@ -65,10 +65,12 @@ part() {
 
 # Config
 ROOT_LUKS_NAME=cryptroot
+SWAP_LUKS_NAME=cryptswap
 DATA_LUKS_NAME=cryptdata
 USERNAME=gorschu
 TIMEZONE=Europe/Berlin
 ROOTFS_SIZE=150G
+SWAP_SIZE=32G
 DATA_PART_NUM=9
 ROOT_SUBVOL=root
 HOME_SUBVOL=home
@@ -100,13 +102,9 @@ else
   echo "No data partition ${DATA_PART_NUM} on ${DISK} — it will be created as encrypted btrfs"
 fi
 
-if [[ "$DATA_PRESERVE" == true ]]; then
-  ROOT_LABEL="fill to preserved data partition"
-else
-  ROOT_LABEL="${ROOTFS_SIZE}"
-fi
 LAYOUT="$(part "$DISK" 1) - 1G EFI (/boot)
-$(part "$DISK" 2) - ${ROOT_LABEL} LUKS2 + btrfs (${ROOT_SUBVOL} ${HOME_SUBVOL})
+$(part "$DISK" 2) - ${ROOTFS_SIZE} LUKS2 + btrfs (${ROOT_SUBVOL} ${HOME_SUBVOL})
+$(part "$DISK" 3) - ${SWAP_SIZE} LUKS2 swap (zswap backing)
 $([[ "$DATA_PRESERVE" == true ]] && echo "$(part "$DISK" ${DATA_PART_NUM}) - LUKS2 + btrfs (${DATA_SUBVOL}) (preserved)" || echo "$(part "$DISK" ${DATA_PART_NUM}) - LUKS2 + btrfs (${DATA_SUBVOL}) (created from remaining space)")"
 
 echo ""
@@ -117,7 +115,7 @@ gum confirm "Wipe and install?" || exit 1
 # Collect all secrets upfront so install can run unattended
 echo ""
 echo "Collecting passwords for unattended install..."
-LUKS_PASSWORD=$(ask_secret "disk encryption (shared root + data)")
+LUKS_PASSWORD=$(ask_secret "disk encryption (shared root + swap + data)")
 USER_PASSWORD=$(ask_secret "$USERNAME")
 
 if gum confirm "Use the same password for root?"; then
@@ -165,10 +163,9 @@ else
   sgdisk -Z "$DISK"
 fi
 sgdisk -n 1:0:+1G -t 1:ef00 -c 1:EFI "$DISK"
-if [[ "$DATA_PRESERVE" == true ]]; then
-  sgdisk -n "2:0:$((DATA_START - 1))" -t 2:8309 -c 2:cryptroot "$DISK"
-else
-  sgdisk -n 2:0:+${ROOTFS_SIZE} -t 2:8309 -c 2:cryptroot "$DISK"
+sgdisk -n 2:0:+${ROOTFS_SIZE} -t 2:8309 -c 2:cryptroot "$DISK"
+sgdisk -n 3:0:+${SWAP_SIZE} -t 3:8200 -c 3:cryptswap "$DISK"
+if [[ "$DATA_PRESERVE" != true ]]; then
   sgdisk -n "${DATA_PART_NUM}:0:0" -t "${DATA_PART_NUM}:8309" -c "${DATA_PART_NUM}:cryptdata" "$DISK"
 fi
 sgdisk -c "${DATA_PART_NUM}:cryptdata" "$DISK"
@@ -190,6 +187,11 @@ echo "Configuring LUKS and btrfs..."
 printf '%s' "$LUKS_PASSWORD" | cryptsetup luksFormat --type luks2 --batch-mode --key-file - "$(part "$DISK" 2)"
 printf '%s' "$LUKS_PASSWORD" | cryptsetup open --key-file - "$(part "$DISK" 2)" "$ROOT_LUKS_NAME"
 mkfs.btrfs /dev/mapper/"$ROOT_LUKS_NAME"
+
+printf '%s' "$LUKS_PASSWORD" | cryptsetup luksFormat --type luks2 --batch-mode --key-file - "$(part "$DISK" 3)"
+printf '%s' "$LUKS_PASSWORD" | cryptsetup open --key-file - "$(part "$DISK" 3)" "$SWAP_LUKS_NAME"
+mkswap /dev/mapper/"$SWAP_LUKS_NAME"
+swapon /dev/mapper/"$SWAP_LUKS_NAME"
 
 # Create btrfs subvolumes
 mount /dev/mapper/"$ROOT_LUKS_NAME" /mnt
@@ -239,7 +241,7 @@ pacstrap /mnt \
   linux-cachyos-zfs linux-cachyos-lts-lto-zfs zfs-utils \
   intel-ucode amd-ucode \
   cryptsetup btrfs-progs \
-  dracut cpio busybox tpm2-tools \
+  dracut systemd-ukify cpio busybox tpm2-tools \
   networkmanager iwd wireless-regdb openssh \
   terminus-font \
   python \
@@ -257,25 +259,13 @@ cp /etc/pacman.conf /mnt/etc/pacman.conf
 # Copy static configs from rootfs overlay
 cp -r "$SCRIPT_DIR/rootfs/." /mnt/
 
-# Get LUKS UUIDs for boot entries
+# Write kernel cmdline for UKI generation (kernel-install + ukify reads this)
 ROOT_LUKS_UUID=$(blkid -s UUID -o value "$(part "$DISK" 2)")
+SWAP_LUKS_UUID=$(blkid -s UUID -o value "$(part "$DISK" 3)")
 DATA_LUKS_UUID=$(blkid -s UUID -o value "$DATA_PART")
 
-# Create systemd-boot entries
-mkdir -p /mnt/boot/loader/entries
-
-cat >/mnt/boot/loader/entries/arch.conf <<EOF
-title Arch Linux (CachyOS)
-linux /vmlinuz-linux-cachyos
-initrd /initramfs-linux-cachyos.img
-options rd.luks.name=${ROOT_LUKS_UUID}=${ROOT_LUKS_NAME} rd.luks.name=${DATA_LUKS_UUID}=${DATA_LUKS_NAME} root=/dev/mapper/${ROOT_LUKS_NAME} rootflags=subvol=${ROOT_SUBVOL} rw
-EOF
-
-cat >/mnt/boot/loader/entries/arch-lts.conf <<EOF
-title Arch Linux LTS (CachyOS)
-linux /vmlinuz-linux-cachyos-lts-lto
-initrd /initramfs-linux-cachyos-lts-lto.img
-options rd.luks.name=${ROOT_LUKS_UUID}=${ROOT_LUKS_NAME} rd.luks.name=${DATA_LUKS_UUID}=${DATA_LUKS_NAME} root=/dev/mapper/${ROOT_LUKS_NAME} rootflags=subvol=${ROOT_SUBVOL} rw
+cat >/mnt/etc/kernel/cmdline <<EOF
+rd.luks.name=${ROOT_LUKS_UUID}=${ROOT_LUKS_NAME} rd.luks.name=${SWAP_LUKS_UUID}=${SWAP_LUKS_NAME} rd.luks.name=${DATA_LUKS_UUID}=${DATA_LUKS_NAME} root=/dev/mapper/${ROOT_LUKS_NAME} rootflags=subvol=${ROOT_SUBVOL} rw zswap.enabled=1 zswap.compressor=zstd zswap.max_pool_percent=25
 EOF
 
 # Chroot and finish setup
@@ -313,8 +303,11 @@ cachyos-rate-mirrors
 # Bootloader
 bootctl install
 
-# Regenerate initramfs (dracut ran during pacstrap before configs were in place)
-dracut --force --regenerate-all
+# Disable CachyOS zram-generator (we use zswap + real swap instead)
+ln -sf /dev/null /etc/systemd/zram-generator.conf
+
+# Generate UKIs for all installed kernels (kernel-install + ukify + dracut)
+kernel-install add-all
 
 # Services
 systemctl enable iwd
@@ -322,6 +315,7 @@ systemctl enable NetworkManager
 systemctl enable sshd
 systemctl enable systemd-resolved
 systemctl enable systemd-timesyncd
+systemctl enable systemd-boot-update.service
 systemctl enable fstrim.timer
 CHROOT
 then

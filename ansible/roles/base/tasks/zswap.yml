@@ -1,0 +1,16 @@
+---
+- name: Mask zram-generator config (prefer zswap)
+  become: true
+  ansible.builtin.file:
+    src: /dev/null
+    dest: /etc/systemd/zram-generator.conf
+    state: link
+    force: true
+
+- name: Stop and disable systemd-zram-setup if active
+  become: true
+  ansible.builtin.systemd_service:
+    name: systemd-zram-setup@zram0.service
+    enabled: false
+    state: stopped
+  failed_when: false

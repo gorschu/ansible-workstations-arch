@@ -7,3 +7,12 @@
     state: present
     sysctl_file: /etc/sysctl.d/90-yama.conf
     reload: true
+
+- name: Set vm.swappiness for zswap
+  become: true
+  ansible.posix.sysctl:
+    name: vm.swappiness
+    value: "180"
+    state: present
+    sysctl_file: /etc/sysctl.d/90-swap.conf
+    reload: true
