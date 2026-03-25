@@ -1,3 +1,6 @@
 ---
 notebook_packages:
   - brightnessctl
+
+notebook_battery_charge_start_threshold: 80
+notebook_battery_charge_stop_threshold: 90

@@ -19,3 +19,30 @@
         url: https://raw.githubusercontent.com/equaeghe/batenergy/master/batenergy.sh
         dest: /usr/lib/systemd/system-sleep/99-batenergy.sh
         mode: "0755"
+
+    - name: Find batteries with charge threshold support
+      ansible.builtin.shell:
+        cmd: ls /sys/class/power_supply/*/charge_control_start_threshold 2>/dev/null || true
+      register: notebook_battery_threshold_glob
+      changed_when: false
+
+    - name: Set battery threshold files fact
+      ansible.builtin.set_fact:
+        notebook_notebook_battery_threshold_files: "{{ notebook_battery_threshold_glob.stdout_lines }}"
+
+    - name: Configure battery charge thresholds
+      when: notebook_battery_threshold_files | length > 0
+      block:
+        - name: Deploy battery charge threshold template unit
+          ansible.builtin.template:
+            src: battery-charge-thresholds@.service.j2
+            dest: /etc/systemd/system/battery-charge-thresholds@.service
+            mode: "0644"
+
+        - name: Enable battery charge threshold service per battery
+          ansible.builtin.systemd:
+            name: "battery-charge-thresholds@{{ item | dirname | basename }}.service"
+            enabled: true
+            state: started
+            daemon_reload: true
+          loop: "{{ notebook_battery_threshold_files }}"

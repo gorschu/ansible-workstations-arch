@@ -1,0 +1,12 @@
+[Unit]
+Description=Set battery charge thresholds for %i
+After=systemd-modules-load.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/sh -c 'echo {{ notebook_battery_charge_start_threshold }} > /sys/class/power_supply/%i/charge_control_start_threshold'
+ExecStart=/bin/sh -c 'echo {{ notebook_battery_charge_stop_threshold }} > /sys/class/power_supply/%i/charge_control_end_threshold'
+
+[Install]
+WantedBy=multi-user.target
