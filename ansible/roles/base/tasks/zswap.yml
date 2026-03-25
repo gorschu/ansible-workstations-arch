@@ -7,9 +7,14 @@
     state: link
     force: true
 
+- name: Gather service facts
+  ansible.builtin.service_facts:
+
 - name: Stop and disable systemd-zram-setup if active
   become: true
   ansible.builtin.systemd_service:
     name: systemd-zram-setup@zram0.service
+    state: stopped
     enabled: false
+  when: "'systemd-zram-setup@zram0.service' in ansible_facts.services"
   failed_when: false
