@@ -306,6 +306,9 @@ bootctl install
 # Disable CachyOS zram-generator (we use zswap + real swap instead)
 ln -sf /dev/null /etc/systemd/zram-generator.conf
 
+# Clean up loose kernel/initramfs files left by pacstrap (ran before install.conf existed)
+rm -f /boot/vmlinuz-* /boot/initramfs-*.img
+
 # Generate UKIs for all installed kernels (kernel-install + ukify + dracut)
 kernel-install add-all
 
