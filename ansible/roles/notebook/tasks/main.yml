@@ -28,7 +28,7 @@
 
     - name: Set battery threshold files fact
       ansible.builtin.set_fact:
-        notebook_notebook_battery_threshold_files: "{{ notebook_battery_threshold_glob.stdout_lines }}"
+        notebook_battery_threshold_files: "{{ notebook_battery_threshold_glob.stdout_lines }}"
 
     - name: Configure battery charge thresholds
       when: notebook_battery_threshold_files | length > 0
