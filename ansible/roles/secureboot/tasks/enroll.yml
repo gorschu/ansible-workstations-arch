@@ -15,8 +15,8 @@
         cmd: sbctl enroll-keys {{ secureboot_enroll_microsoft | ternary('-m', '') }}
       changed_when: true
       when:
+        - _secureboot_status.stdout is search('Secure Boot:.*Disabled')
         - _secureboot_status.stdout is search('Setup Mode:.*Enabled')
-        - _secureboot_status.stdout is search('Installed.*not installed')
 
     - name: Warn if firmware is not in Setup Mode
       ansible.builtin.debug:
@@ -27,5 +27,5 @@
           2) Boot into Arch, run: sudo sbctl enroll-keys -m
           3) Reboot into BIOS, enable Secure Boot
       when:
+        - _secureboot_status.stdout is search('Secure Boot:.*Disabled')
         - _secureboot_status.stdout is not search('Setup Mode:.*Enabled')
-        - _secureboot_status.stdout is search('Installed.*not installed')
