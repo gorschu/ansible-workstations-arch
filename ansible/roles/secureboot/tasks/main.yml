@@ -1,0 +1,14 @@
+---
+# Secure Boot key deployment, signing, and enrollment
+
+- name: Deploy sbctl keys and GUID
+  ansible.builtin.import_tasks: keys.yml
+  tags: secureboot
+
+- name: Sign EFI binaries
+  ansible.builtin.import_tasks: sign.yml
+  tags: secureboot
+
+- name: Enroll Secure Boot keys
+  ansible.builtin.import_tasks: enroll.yml
+  tags: secureboot

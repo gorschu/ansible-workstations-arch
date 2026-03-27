@@ -1,0 +1,30 @@
+---
+# Sign and track EFI binaries for Secure Boot.
+# After initial signing, the pacman hook and kernel-install plugin handle re-signing.
+
+- name: Sign EFI binaries
+  become: true
+  block:
+    - name: Sign and track systemd-boot binary
+      ansible.builtin.command:
+        cmd: >-
+          sbctl sign -s
+          -o /usr/lib/systemd/boot/efi/systemd-bootx64.efi.signed
+          /usr/lib/systemd/boot/efi/systemd-bootx64.efi
+      register: _secureboot_sign_boot
+      changed_when: "'already signed' not in _secureboot_sign_boot.stderr"
+
+    - name: Find UKI images on ESP
+      ansible.builtin.find:
+        paths: /boot/EFI/Linux
+        patterns: "*.efi"
+      register: _secureboot_uki_files
+
+    - name: Sign and track UKI images
+      ansible.builtin.command:
+        cmd: sbctl sign -s {{ item.path }}
+      loop: "{{ _secureboot_uki_files.files }}"
+      loop_control:
+        label: "{{ item.path | basename }}"
+      register: _secureboot_sign_uki
+      changed_when: "'already signed' not in _secureboot_sign_uki.stderr"

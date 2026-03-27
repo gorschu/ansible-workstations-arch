@@ -9,6 +9,7 @@ base_system_utils:
   - parted
   - dmidecode
   - geoclue
+  - sbctl
 
 base_cli_utils:
   - pkgfile

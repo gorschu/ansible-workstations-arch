@@ -1,0 +1,40 @@
+---
+# Deploy pre-generated Secure Boot keys to /var/lib/sbctl/
+
+- name: Deploy sbctl keys
+  become: true
+  block:
+    - name: Create sbctl directories
+      ansible.builtin.file:
+        path: "/var/lib/sbctl/keys/{{ item }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0700"
+      loop:
+        - PK
+        - KEK
+        - db
+
+    - name: Deploy GUID
+      ansible.builtin.copy:
+        src: GUID
+        dest: /var/lib/sbctl/GUID
+        owner: root
+        group: root
+        mode: "0600"
+
+    - name: Deploy signing keys
+      ansible.builtin.copy:
+        src: "keys/{{ item }}"
+        dest: "/var/lib/sbctl/keys/{{ item }}"
+        owner: root
+        group: root
+        mode: "0400"
+      loop:
+        - PK/PK.key
+        - PK/PK.pem
+        - KEK/KEK.key
+        - KEK/KEK.pem
+        - db/db.key
+        - db/db.pem

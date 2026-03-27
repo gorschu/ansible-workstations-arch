@@ -1,0 +1,31 @@
+---
+# Enroll Secure Boot keys into firmware (only works when firmware is in Setup Mode)
+
+- name: Enroll Secure Boot keys
+  become: true
+  block:
+    - name: Check Secure Boot status
+      ansible.builtin.command:
+        cmd: sbctl status
+      register: _secureboot_status
+      changed_when: false
+
+    - name: Enroll keys into firmware
+      ansible.builtin.command:
+        cmd: sbctl enroll-keys {{ secureboot_enroll_microsoft | ternary('-m', '') }}
+      changed_when: true
+      when:
+        - _secureboot_status.stdout is search('Setup Mode:.*Enabled')
+        - _secureboot_status.stdout is search('Installed.*not installed')
+
+    - name: Warn if firmware is not in Setup Mode
+      ansible.builtin.debug:
+        msg: >-
+          Secure Boot keys NOT enrolled: firmware is not in Setup Mode.
+          To enroll manually:
+          1) Reboot into BIOS, clear Secure Boot keys (enters Setup Mode)
+          2) Boot into Arch, run: sudo sbctl enroll-keys -m
+          3) Reboot into BIOS, enable Secure Boot
+      when:
+        - _secureboot_status.stdout is not search('Setup Mode:.*Enabled')
+        - _secureboot_status.stdout is search('Installed.*not installed')

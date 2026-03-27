@@ -1,0 +1,4 @@
+---
+# Include Microsoft certificates when enrolling keys
+# Required for hardware with MS-signed option ROMs
+secureboot_enroll_microsoft: true
