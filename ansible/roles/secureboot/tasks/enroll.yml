@@ -10,6 +10,28 @@
       register: _secureboot_status
       changed_when: false
 
+    - name: Find immutable EFI variables
+      ansible.builtin.find:
+        paths: /sys/firmware/efi/efivars
+        patterns:
+          - 'KEK-*'
+          - 'db-*'
+          - 'dbx-*'
+        file_type: file
+      register: _secureboot_efi_vars
+      when:
+        - _secureboot_status.stdout is search('Secure Boot:.*Disabled')
+        - _secureboot_status.stdout is search('Setup Mode:.*Enabled')
+
+    - name: Remove immutable flag from EFI variables
+      ansible.builtin.command:
+        cmd: chattr -i {{ item.path }}
+      loop: "{{ _secureboot_efi_vars.files }}"
+      loop_control:
+        label: "{{ item.path | basename }}"
+      changed_when: false
+      when: _secureboot_efi_vars.files | default([]) | length > 0
+
     - name: Enroll keys into firmware
       ansible.builtin.command:
         cmd: sbctl enroll-keys {{ secureboot_enroll_microsoft | ternary('-m', '') }}

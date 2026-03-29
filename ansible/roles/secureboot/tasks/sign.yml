@@ -5,26 +5,18 @@
 - name: Sign EFI binaries
   become: true
   block:
-    - name: Sign and track systemd-boot binary
-      ansible.builtin.command:
-        cmd: >-
-          sbctl sign -s
-          -o /usr/lib/systemd/boot/efi/systemd-bootx64.efi.signed
-          /usr/lib/systemd/boot/efi/systemd-bootx64.efi
-      register: _secureboot_sign_boot
-      changed_when: "'already signed' not in _secureboot_sign_boot.stderr"
-
-    - name: Find UKI images on ESP
+    - name: Collect EFI binaries to sign
       ansible.builtin.find:
-        paths: /boot/EFI/Linux
+        paths: /boot/EFI
         patterns: "*.efi"
-      register: _secureboot_uki_files
+        recurse: true
+      register: _secureboot_efi_files
 
-    - name: Sign and track UKI images
+    - name: Sign and track EFI binaries
       ansible.builtin.command:
         cmd: sbctl sign -s {{ item.path }}
-      loop: "{{ _secureboot_uki_files.files }}"
+      loop: "{{ _secureboot_efi_files.files }}"
       loop_control:
         label: "{{ item.path | basename }}"
-      register: _secureboot_sign_uki
-      changed_when: "'already signed' not in _secureboot_sign_uki.stderr"
+      register: _secureboot_sign
+      changed_when: "'already been signed' not in _secureboot_sign.stdout"
