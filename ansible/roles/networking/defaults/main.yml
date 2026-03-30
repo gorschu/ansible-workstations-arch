@@ -23,8 +23,14 @@ networking_wifi_interface_pattern: '^wl'
 # WireGuard Home VPN configuration
 # Set to true to fetch wg-home.conf from 1Password and configure the VPN
 networking_wireguard_home_enabled: true
+# Fixed unique listen port for wg-home. Must be set to avoid a NM bug where applying
+# the fwmark (ip4-auto-default-route) triggers a socket re-init that changes
+# the ephemeral port, causing handshake responses to land on a port nobody listens on.
+networking_wireguard_home_listen_port: 51820
 
 # Cloudflare WARP configuration
+# Fixed unique listen port.
+networking_warp_listen_port: 51821
 networking_warp_state: absent
 # Override DNS to Cloudflare's resolvers for the WARP interface (breaks internal DNS, off by default)
 networking_warp_cloudflare_dns: false

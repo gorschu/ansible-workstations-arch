@@ -6,10 +6,14 @@ autoconnect=false
 
 [wireguard]
 private-key={{ vault_networking_wg_home.private_key }}
+listen-port={{ networking_wireguard_home_listen_port }}
+ip4-auto-default-route=1
+ip6-auto-default-route=1
 
 [wireguard-peer.{{ vault_networking_wg_home.peer_public_key }}]
 endpoint={{ vault_networking_wg_home.endpoint }}
 preshared-key={{ vault_networking_wg_home.preshared_key }}
+preshared-key-flags=0
 allowed-ips={{ vault_networking_wg_home.allowed_ips | replace(',', ';') }};
 persistent-keepalive=25
 

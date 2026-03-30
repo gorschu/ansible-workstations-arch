@@ -6,7 +6,10 @@ autoconnect=true
 
 [wireguard]
 private-key={{ vault_networking_warp[inventory_hostname].private_key }}
+listen-port={{ networking_warp_listen_port }}
 mtu=1280
+ip4-auto-default-route=1
+ip6-auto-default-route=1
 
 [wireguard-peer.{{ vault_networking_warp[inventory_hostname].peer_public_key }}]
 endpoint={{ vault_networking_warp[inventory_hostname].endpoint }}
