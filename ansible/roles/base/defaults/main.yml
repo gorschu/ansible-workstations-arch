@@ -20,7 +20,6 @@ base_cli_utils:
   - gnupg
   - python-gpgme
   - man
-  - mtr
   - bc
 
 base_tuned_packages:
