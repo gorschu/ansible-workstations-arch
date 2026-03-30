@@ -49,6 +49,7 @@
   loop: "{{ printing_lpstat.results }}"
   when: item.rc != 0
   changed_when: true
+  failed_when: false
 
 - name: Get current default printer
   ansible.builtin.command:
@@ -66,3 +67,4 @@
     - item.default | default(false)
     - item.name not in printing_current_default.stdout
   changed_when: true
+  failed_when: false
