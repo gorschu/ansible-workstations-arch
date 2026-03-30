@@ -1,6 +1,7 @@
 ---
 # Sign and track EFI binaries for Secure Boot.
-# After initial signing, the pacman hook and kernel-install plugin handle re-signing.
+# After initial signing, sbctl's kernel-install plugin (91-sbctl.install) and
+# pacman hook (zz-sbctl.hook) handle re-signing on kernel updates.
 
 - name: Sign EFI binaries
   become: true

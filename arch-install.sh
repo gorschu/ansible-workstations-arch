@@ -296,6 +296,15 @@ echo "root:${ROOT_PASSWORD}" | chpasswd
 # Sudo
 sed -i 's/^# %wheel ALL=(ALL:ALL) ALL/%wheel ALL=(ALL:ALL) ALL/' /etc/sudoers
 
+# Install pacman-hook-kernel-install from AUR (triggers kernel-install on kernel updates)
+sudo -u ${USERNAME} bash -c 'cd /tmp && git clone https://aur.archlinux.org/pacman-hook-kernel-install.git && cd pacman-hook-kernel-install && makepkg -si --noconfirm && cd /tmp && rm -rf pacman-hook-kernel-install'
+
+# Mask dracut's own pacman hooks — they generate traditional initramfs which is
+# useless with layout=uki. kernel-install (via the hook above) handles everything.
+mkdir -p /etc/pacman.d/hooks
+ln -sf /dev/null /etc/pacman.d/hooks/90-dracut-install.hook
+ln -sf /dev/null /etc/pacman.d/hooks/60-dracut-remove.hook
+
 # Rank mirrors
 echo "Ranking mirrors..."
 cachyos-rate-mirrors
