@@ -1,20 +1,6 @@
 ---
 # Networking configuration - hostname, NetworkManager, WireGuard, Tailscale
 
-- name: Replace legacy iptables with iptables-nft
-  become: true
-  block:
-    - name: Remove legacy iptables
-      community.general.pacman:
-        name: iptables
-        state: absent
-        force: true
-
-    - name: Install iptables-nft
-      community.general.pacman:
-        name: iptables-nft
-        state: present
-
 - name: Install networking packages
   become: true
   community.general.pacman:
