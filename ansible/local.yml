@@ -16,7 +16,7 @@
     - role: base
       tags: [base, phase1]
     - role: secureboot
-      tags: [secureboot, phase1]
+      tags: [secureboot]
     - role: onepassword
       tags: [onepassword, desktop, phase2]
     - role: notebook
