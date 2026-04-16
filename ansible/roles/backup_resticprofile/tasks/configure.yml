@@ -71,6 +71,7 @@
         - name: Unschedule all timers before updating config
           ansible.builtin.command:
             cmd: resticprofile unschedule --all
+            chdir: /
           failed_when: false
           changed_when: true
 
@@ -89,6 +90,7 @@
         - name: Regenerate systemd units
           ansible.builtin.command:
             cmd: resticprofile schedule --all --start --reload
+            chdir: /
           changed_when: true
 
   always:
