@@ -24,7 +24,6 @@
       ansible.builtin.systemd:
         name: "{{ item }}"
         masked: true
-        scope: global
       loop:
         - gnome-keyring-daemon.service
         - gnome-keyring-daemon.socket
