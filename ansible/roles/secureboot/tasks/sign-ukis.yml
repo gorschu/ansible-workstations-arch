@@ -1,0 +1,21 @@
+---
+# UKIs on the ESP - sbctl tracks these and re-signs via its
+# kernel-install plugin (91-sbctl.install) on kernel updates.
+
+- name: Sign and track UKIs
+  become: true
+  block:
+    - name: Collect UKIs to sign
+      ansible.builtin.find:
+        paths: /boot/EFI/Linux
+        patterns: "*.efi"
+      register: _secureboot_uki_files
+
+    - name: Sign and track UKIs
+      ansible.builtin.command:
+        cmd: sbctl sign -s {{ item.path }}
+      loop: "{{ _secureboot_uki_files.files }}"
+      loop_control:
+        label: "{{ item.path | basename }}"
+      register: _secureboot_sign_uki
+      changed_when: "'already been signed' not in _secureboot_sign_uki.stdout"

@@ -1,44 +1,13 @@
 ---
 # Sign EFI binaries for Secure Boot.
-# After initial signing, sbctl's kernel-install plugin (91-sbctl.install) and
-# pacman hook (zz-sbctl.hook) handle re-signing on kernel/systemd updates.
+# After initial signing, sbctl's kernel-install plugin (91-sbctl.install)
+# and pacman hook (zz-sbctl.hook) handle re-signing on package/kernel updates.
 
-- name: Sign EFI binaries
-  become: true
-  block:
-    # Sign systemd-boot at /usr/lib/ so bootctl update always deploys the
-    # signed copy. See bootctl(1) § SIGNED .EFI FILES.
-    - name: Sign systemd-boot source binary
-      ansible.builtin.command:
-        cmd: >-
-          sbctl sign -s
-          -o /usr/lib/systemd/boot/efi/systemd-bootx64.efi.signed
-          /usr/lib/systemd/boot/efi/systemd-bootx64.efi
-      register: _secureboot_sign_bootloader
-      changed_when: "'already been signed' not in _secureboot_sign_bootloader.stdout"
+- name: Sign systemd-boot
+  ansible.builtin.import_tasks: sign-systemd-boot.yml
 
-    - name: Deploy signed bootloader to ESP
-      ansible.builtin.command:
-        cmd: bootctl install
-      register: _secureboot_bootctl
-      changed_when: "'Copied' in _secureboot_bootctl.stderr"
-      failed_when:
-        - _secureboot_bootctl.rc != 0
-        - "'already installed' not in _secureboot_bootctl.stderr"
+- name: Sign fwupd
+  ansible.builtin.import_tasks: sign-fwupd.yml
 
-    # UKIs on the ESP - sbctl tracks these and re-signs via its
-    # kernel-install plugin on kernel updates.
-    - name: Collect UKIs to sign
-      ansible.builtin.find:
-        paths: /boot/EFI/Linux
-        patterns: "*.efi"
-      register: _secureboot_uki_files
-
-    - name: Sign and track UKIs
-      ansible.builtin.command:
-        cmd: sbctl sign -s {{ item.path }}
-      loop: "{{ _secureboot_uki_files.files }}"
-      loop_control:
-        label: "{{ item.path | basename }}"
-      register: _secureboot_sign
-      changed_when: "'already been signed' not in _secureboot_sign.stdout"
+- name: Sign UKIs
+  ansible.builtin.import_tasks: sign-ukis.yml

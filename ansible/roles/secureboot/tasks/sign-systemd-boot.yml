@@ -1,0 +1,14 @@
+---
+# Sign systemd-boot at /usr/lib/ so bootctl install/update deploys the
+# signed copy. See bootctl(1) § SIGNED .EFI FILES.
+
+- name: Sign systemd-boot source binary
+  become: true
+  ansible.builtin.command:
+    cmd: >-
+      sbctl sign -s
+      -o /usr/lib/systemd/boot/efi/systemd-bootx64.efi.signed
+      /usr/lib/systemd/boot/efi/systemd-bootx64.efi
+  register: _secureboot_sign_bootloader
+  changed_when: "'already been signed' not in _secureboot_sign_bootloader.stdout"
+  notify: Deploy signed bootloader
