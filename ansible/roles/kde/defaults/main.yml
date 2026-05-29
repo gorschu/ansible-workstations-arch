@@ -10,6 +10,7 @@ kde_applications:
   - dolphin
   - gwenview
   - kate
+  - kaccounts-providers
   - kdeconnect
   - konsole
   - krdc
