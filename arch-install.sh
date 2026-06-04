@@ -74,6 +74,8 @@ SWAP_SIZE=32G
 DATA_PART_NUM=9
 ROOT_SUBVOL=root
 HOME_SUBVOL=home
+NIX_SUBVOL=nix
+SCRATCH_SUBVOL=scratch
 DATA_SUBVOL=data
 
 ask_secret() {
@@ -103,7 +105,7 @@ else
 fi
 
 LAYOUT="$(part "$DISK" 1) - 1G EFI (/boot)
-$(part "$DISK" 2) - ${ROOTFS_SIZE} LUKS2 + btrfs (${ROOT_SUBVOL} ${HOME_SUBVOL})
+$(part "$DISK" 2) - ${ROOTFS_SIZE} LUKS2 + btrfs (${ROOT_SUBVOL} ${HOME_SUBVOL} ${NIX_SUBVOL} ${SCRATCH_SUBVOL})
 $(part "$DISK" 3) - ${SWAP_SIZE} LUKS2 swap (zswap backing)
 $([[ "$DATA_PRESERVE" == true ]] && echo "$(part "$DISK" ${DATA_PART_NUM}) - LUKS2 + btrfs (${DATA_SUBVOL}) (preserved)" || echo "$(part "$DISK" ${DATA_PART_NUM}) - LUKS2 + btrfs (${DATA_SUBVOL}) (created from remaining space)")"
 
@@ -197,6 +199,8 @@ swapon /dev/mapper/"$SWAP_LUKS_NAME"
 mount /dev/mapper/"$ROOT_LUKS_NAME" /mnt
 btrfs subvolume create "/mnt/${ROOT_SUBVOL}"
 btrfs subvolume create "/mnt/${HOME_SUBVOL}"
+btrfs subvolume create "/mnt/${NIX_SUBVOL}"
+btrfs subvolume create "/mnt/${SCRATCH_SUBVOL}"
 umount /mnt
 
 # Setup data partition (part9)
@@ -228,8 +232,9 @@ unset LUKS_PASSWORD
 
 # Mount everything (ESP at /boot for systemd-boot)
 mount -o subvol="${ROOT_SUBVOL}" /dev/mapper/"$ROOT_LUKS_NAME" /mnt
-mkdir -p /mnt/{home,boot}
+mkdir -p /mnt/{home,boot,nix}
 mount -o subvol="${HOME_SUBVOL}" /dev/mapper/"$ROOT_LUKS_NAME" /mnt/home
+mount -o subvol="${NIX_SUBVOL}" /dev/mapper/"$ROOT_LUKS_NAME" /mnt/nix
 mount "$(part "$DISK" 1)" /mnt/boot
 
 # Install base system
