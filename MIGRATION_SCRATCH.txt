@@ -1,0 +1,106 @@
+================================================================
+Adding the `scratch` subvolume to existing installs
+================================================================
+
+For machines installed before the scratch subvolume support landed
+(artemis, apollo, hephaestus). Run this on each box once.
+
+Goal: a sibling btrfs subvolume `scratch` on the root btrfs, mounted
+at $HOME/.scratch, NOT included in any btrbk snapshot job. After
+mounting, chezmoi-managed user-tmpfiles symlinks the heavy cache
+paths (~/.cache, ~/.local/share/containers) into it.
+
+----------------------------------------------------------------
+1) Stop processes holding the cache paths open
+----------------------------------------------------------------
+
+   systemctl --user stop podman.socket podman.service 2>/dev/null
+   systemctl --user stop syncthing.service 2>/dev/null
+   # Quit GUI apps that write to ~/.cache (browsers, KDE, etc.)
+
+----------------------------------------------------------------
+2) Create the scratch subvolume on the root btrfs
+----------------------------------------------------------------
+
+   sudo mkdir -p /mnt/btrfs_root_tmp
+   sudo mount -o subvolid=5 /dev/mapper/cryptroot /mnt/btrfs_root_tmp
+   sudo btrfs subvolume create /mnt/btrfs_root_tmp/scratch
+   sudo umount /mnt/btrfs_root_tmp
+   sudo rmdir /mnt/btrfs_root_tmp
+
+----------------------------------------------------------------
+3) Mount it at ~/.scratch
+----------------------------------------------------------------
+
+   sudo mkdir -p "$HOME/.scratch"
+   sudo chown $USER:$USER "$HOME/.scratch"
+
+   # Get the cryptroot UUID:
+   sudo blkid /dev/mapper/cryptroot
+
+   # Append to /etc/fstab (replace UUID):
+   #   UUID=<from-blkid> /home/<user>/.scratch  btrfs  subvol=scratch,compress=zstd:3,relatime  0 0
+
+   sudo systemctl daemon-reload
+   sudo mount "$HOME/.scratch"
+   findmnt "$HOME/.scratch"   # verify subvol=scratch
+
+----------------------------------------------------------------
+4) Move existing cache content into scratch
+----------------------------------------------------------------
+
+   # Helper: move a source path into a mirror location under ~/.scratch.
+   # Destination path inside scratch mirrors the original $HOME-relative path.
+   migrate() {
+     local src="$1"
+     local rel="${src#$HOME/}"
+     local dst="$HOME/.scratch/$rel"
+     if [ -d "$src" ] && [ ! -L "$src" ]; then
+       mv "$src" "$src.bak"
+       mkdir -p "$dst"
+       cp -a --reflink=auto "$src.bak/." "$dst/"
+       rm -rf "$src.bak"
+     fi
+   }
+
+   migrate "$HOME/.cache"
+   migrate "$HOME/.local/share/containers"
+   migrate "$HOME/.cargo/registry"   # skipped if .cargo doesn't exist
+   migrate "$HOME/.npm"
+   migrate "$HOME/go/pkg/mod"
+
+----------------------------------------------------------------
+5) Let chezmoi create the symlinks via user-tmpfiles
+----------------------------------------------------------------
+
+   chezmoi apply
+   # the run_onchange user-tmpfiles script runs systemd-tmpfiles --user --create
+   # which materializes the L+ symlinks from 30-scratch.conf.
+
+   # verify (each should print a path under ~/.scratch/):
+   readlink ~/.cache
+   readlink ~/.local/share/containers
+   readlink ~/.cargo/registry 2>/dev/null
+   readlink ~/.npm 2>/dev/null
+   readlink ~/go/pkg/mod 2>/dev/null
+
+----------------------------------------------------------------
+6) Bring services back up
+----------------------------------------------------------------
+
+   systemctl --user start syncthing.service 2>/dev/null
+   # podman/syncthing/etc. will recreate state under the new paths.
+
+----------------------------------------------------------------
+7) Reclaim space (optional but recommended)
+----------------------------------------------------------------
+
+   # Old home snapshots still hold the pre-migration cache content.
+   # If you want immediate space back, prune older home snapshots:
+   sudo btrbk -c /etc/btrbk/btrbk.conf clean
+   # or surgically delete the largest snapshots after inspecting:
+   sudo btrfs subvolume list -ts /mnt/btrfs_root
+
+----------------------------------------------------------------
+Done. Future home snapshots no longer capture cache/container churn.
+----------------------------------------------------------------
